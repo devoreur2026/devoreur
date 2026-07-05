@@ -88,8 +88,20 @@ real networked players with the same body + name-tag visuals.
 ## Controls
 
 WASD / arrows move · mouse look (click to lock pointer) · Shift sprint (loud —
-eaters hear you) · **E** drop a beacon · **M** mute. On touch devices: left half
-of the screen is a move stick, right half looks.
+eaters hear you) · **E** drop a beacon · **hold M** read the Torn Map (only if
+you carry it). Mute is the ♪ button. On touch devices: left half of the screen
+is a move stick, right half looks; carrying the map shows a **MAP** hold button.
+
+## The Torn Map
+
+Each round a golden **relic** (a floating scroll with a column of light) spawns
+40–70% of the way to the Heart. Walk over it to pick it up — the whole room is
+told. Holding it lets you **hold M** to read a top-down map of the maze with
+your position and the Heart marked, but you **can't move while reading** (a
+risk). Carrying it costs you: your name tag glows gold and is faintly visible
+to others through walls, and eaters hear you 50% farther. Die and it drops at
+the spot for anyone to grab. All of this is server-authoritative and synced via
+snapshots, so a player joining mid-round sees the correct state.
 
 ## Testing / verification
 

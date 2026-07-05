@@ -4,12 +4,13 @@
 import { THREE } from './three.js';
 import { MSG } from '../shared/protocol.js';
 import { state } from './state.js';
-import { renderer, scene, camera, animateWorld } from './scene.js';
+import { renderer, scene, camera, animateWorld, updateRelic } from './scene.js';
 import { player, collectInputs, updateOffset, applyCamera, reconcile } from './player.js';
 import { net } from './net.js';
 import * as remotePlayers from './remotePlayers.js';
 import * as eaters from './eaters.js';
 import * as postfx from './postfx.js';
+import * as mapview from './mapview.js';
 import { updateHud } from './hud.js';
 import './game.js';   // registers server-event hooks + overlay buttons
 
@@ -47,7 +48,9 @@ function loop(){
   remotePlayers.render(dt);
   eaters.sync(net.eaters);
   eaters.render(dt, t);
+  updateRelic(net.map, t);
   animateWorld(dt, t, player);
+  mapview.update();
   updateHud(dt);
 
   if (state.quality === 'high') postfx.render(t);   // bloom + grain + vignette

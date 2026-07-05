@@ -42,6 +42,7 @@ export var net = {
   time: 0,
   players: [],
   eaters: [],
+  map: { g: 0, x: 0, z: 0, c: 0 },   // Torn Map: onGround, x, z, carrier id
   round: { phase: 'playing', timeLeft: 0, winner: null },
   rev: 0,                     // bumped on every STATE so the client reconciles once per snapshot
 
@@ -81,6 +82,7 @@ export var net = {
         this.time = m.time;
         this.players = m.players;
         this.eaters = m.eaters;
+        if (m.map) this.map = m.map;
         this.round = m.round;
         this.rev++;
         this._emit('state', m);
@@ -90,6 +92,9 @@ export var net = {
         break;
       case MSG.ROUND_OVER:
         this._emit('roundOver', m);
+        break;
+      case MSG.RELIC:
+        this._emit('relic', m);
         break;
     }
   },

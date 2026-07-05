@@ -8,4 +8,6 @@
 // `quality` drives the visual tier: 'high' enables post-processing (bloom +
 // film grain + vignette) and the full particle/lighting budget; 'low' keeps
 // the lighter look for phones (direct render, fewer lights/particles).
-export var state = { phase: 'menu', quality: 'high' };
+// `mapOpen` is true while the Torn Map carrier is reading the map — movement is
+// locked (reading is a risk) and the overlay is shown.
+export var state = { phase: 'menu', quality: 'high', mapOpen: false };

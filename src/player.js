@@ -16,7 +16,6 @@ import { moveStep } from '../shared/movement.js';
 import { Sfx } from './audio.js';
 import { camera, canvas, scene, makeGlow } from './scene.js';
 import { state } from './state.js';
-import { toggleMute } from './game.js';
 
 var STEP = INPUT_STEP;          // fixed input timestep (seconds)
 var MAX_STEPS = 5;              // per-frame step cap (drops backlog after a stall)
@@ -75,7 +74,7 @@ window.addEventListener('keydown', function(e){
   keys[e.code] = true;
   if (e.code === 'ArrowUp' || e.code === 'ArrowDown' || e.code === 'Space') e.preventDefault();
   if (e.code === 'KeyE') dropMarker();
-  if (e.code === 'KeyM') toggleMute();
+  // KeyM opens the Torn Map (handled in mapview.js); mute lives on the ♪ button.
 });
 window.addEventListener('keyup', function(e){ keys[e.code] = false; });
 window.addEventListener('blur', function(){ keys = {}; dragging = false; });
@@ -146,6 +145,7 @@ function buildCmd(sdt){
   if (keys.ArrowLeft) player.yaw += 2.4 * sdt;
   if (keys.ArrowRight) player.yaw -= 2.4 * sdt;
   f += -mvVec.y; s += mvVec.x;
+  if (state.mapOpen){ f = 0; s = 0; }        // reading the map locks movement (a risk)
   var len = Math.sqrt(f * f + s * s);
   player.moving = len > 0.01;
   var wantSprint = (keys.ShiftLeft || keys.ShiftRight || len > 1.4) && player.moving;
