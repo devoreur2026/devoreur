@@ -56,7 +56,8 @@ export var net = {
     this.ws = new WebSocket(proto + '://' + location.host + '/ws');
     this.ws.onopen = function(){
       self.connected = true;
-      self.send({ t: MSG.JOIN, name: name });
+      // ?dev=treasure asks the server to spawn us near the treasure (dev only)
+      self.send({ t: MSG.JOIN, name: name, dev: _q.get('dev') || undefined });
     };
     this.ws.onmessage = function(ev){ delayed(function(){ self._recv(ev.data); }); };
     this.ws.onclose = function(){ self.connected = false; self._emit('close'); };

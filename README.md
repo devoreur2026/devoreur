@@ -120,3 +120,9 @@ and replays unacknowledged inputs, blending any residual correction over
 ~100ms. To feel it under load, append **`?lag=200&jitter=60`** to the URL — a
 dev-only option that delays traffic both ways (a "SIM LAG" badge shows when
 it's on). There's also a `window.UMBRA` handle for inspection in the console.
+
+**Dev spawn (testing the treasure grab):** run the server with the dev flag —
+`npm run dev:treasure` (or set `UMBRA_DEV=1` in the host's env) — then open the
+game with **`?dev=treasure`**. You'll spawn a few cells from the Heart so you
+can walk over it and watch the win/next-round flow. It's ignored unless the
+server is started with `UMBRA_DEV=1`, so it can't be abused on a normal deploy.

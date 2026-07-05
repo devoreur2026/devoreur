@@ -42,6 +42,7 @@ export class Room {
     this.maze = gen.maze;
     this.grid = gen.grid;
     this.dS = gen.dS;
+    this.tField = gen.tField;
     this.treasureT = gen.treasureT;
     this.startT = gen.startT;
     this.startWX = { x: WX(this.startT.x), z: WX(this.startT.z) };
@@ -53,8 +54,18 @@ export class Room {
     this.phase = PHASE.PLAYING;
     this.winnerName = null;
     this.t = 0;
-    for (var p of this.players.values()) p.spawnAt(this.startWX.x, this.startWX.z);
+    for (var p of this.players.values()){ var s = this.spawnPos(p); p.spawnAt(s.x, s.z); }
     this.broadcast(this.roundMsg());
+  }
+
+  // Where a player (re)spawns: start normally, or a few cells from the treasure
+  // for dev testing (server-gated by UMBRA_DEV; see index.js).
+  spawnPos(p){
+    if (p.devSpawn){
+      var cell = this.maze.randOpenCell(this.tField, 2, 4, this.rnd);
+      return { x: WX(cell.x), z: WX(cell.z) };
+    }
+    return this.startWX;
   }
 
   // The Torn Map relic: one per round, on an open cell 40–70% of the treasure's
@@ -64,10 +75,11 @@ export class Room {
     this.relic = { onGround: true, carrier: 0, x: WX(cell.x), z: WX(cell.z) };
   }
 
-  addPlayer(name, ws){
+  addPlayer(name, ws, dev){
     var pid = nextPlayerId++;
     var p = new ServerPlayer(pid, name, this.players.size, ws);
-    p.spawnAt(this.startWX.x, this.startWX.z);
+    p.devSpawn = (dev === 'treasure');
+    var s = this.spawnPos(p); p.spawnAt(s.x, s.z);
     this.players.set(pid, p);
     this.send(ws, { t: MSG.WELCOME, id: pid, color: p.color });
     this.send(ws, this.roundMsg());
@@ -128,7 +140,7 @@ export class Room {
     if (!p || p.invuln > 0) return;
     if (this.relic.carrier === pid) this.dropRelicAt(p.x, p.z);   // drops at the death spot
     p.deaths++;
-    p.spawnAt(this.startWX.x, this.startWX.z);
+    var s = this.spawnPos(p); p.spawnAt(s.x, s.z);
     this.send(p.ws, { t: MSG.KILLED });
   }
 
