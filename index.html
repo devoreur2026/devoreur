@@ -76,6 +76,14 @@
     text-align:center;font-size:14px;letter-spacing:.16em;padding:13px 16px;outline:none}
   #nameInput:focus{border-color:var(--gold)}
   #nameInput::placeholder{color:#565b6e;letter-spacing:.12em}
+  #gfx{margin-top:24px;display:flex;align-items:center;gap:9px}
+  .gfxlabel{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:#565b6e;margin-right:2px}
+  .gfxbtn{pointer-events:auto;background:transparent;border:1px solid rgba(233,227,209,.2);
+    color:var(--dim);padding:7px 17px;cursor:pointer;font-size:10px;letter-spacing:.26em;
+    text-transform:uppercase;transition:all .2s}
+  .gfxbtn:hover{border-color:var(--ember);color:var(--ember)}
+  .gfxbtn.on{border-color:var(--gold);color:var(--gold);background:rgba(255,206,107,.07);
+    box-shadow:0 0 18px rgba(255,206,107,.14)}
   .fine{margin-top:26px;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#565b6e}
   .fine b{color:var(--dim)}
   h2{font-family:Georgia,serif;font-weight:400;font-size:clamp(30px,6vw,54px);letter-spacing:.1em;line-height:1.25}
@@ -116,6 +124,11 @@
   </p>
   <input id="nameInput" maxlength="16" placeholder="enter your name" autocomplete="off">
   <button class="btn" id="startBtn">Enter the maze</button>
+  <div id="gfx">
+    <span class="gfxlabel">Graphics</span>
+    <button class="gfxbtn" id="gfxLow">Low</button>
+    <button class="gfxbtn" id="gfxHigh">High</button>
+  </div>
   <div class="fine"><b>live multiplayer</b> — everyone here shares one maze · first to the Heart wins the round</div>
 </div>
 
@@ -132,6 +145,14 @@
 </div>
 
 <script src="./vendor/three.min.js"></script>
+<!-- post-processing example modules (vendored, legacy build; attach to global THREE) -->
+<script src="./vendor/shaders/CopyShader.js"></script>
+<script src="./vendor/shaders/LuminosityHighPassShader.js"></script>
+<script src="./vendor/postprocessing/EffectComposer.js"></script>
+<script src="./vendor/postprocessing/RenderPass.js"></script>
+<script src="./vendor/postprocessing/ShaderPass.js"></script>
+<script src="./vendor/postprocessing/MaskPass.js"></script>
+<script src="./vendor/postprocessing/UnrealBloomPass.js"></script>
 <script type="module" src="./src/main.js"></script>
 </body>
 </html>

@@ -9,6 +9,7 @@ import { player, updatePlayer, applyCamera, reconcile } from './player.js';
 import { net } from './net.js';
 import * as remotePlayers from './remotePlayers.js';
 import * as eaters from './eaters.js';
+import * as postfx from './postfx.js';
 import { updateHud } from './hud.js';
 import './game.js';   // registers server-event hooks + overlay buttons
 
@@ -39,7 +40,9 @@ function loop(){
   animateWorld(dt, t, player);
   applyCamera();
   updateHud(dt);
-  renderer.render(scene, camera);
+
+  if (state.quality === 'high') postfx.render(t);   // bloom + grain + vignette
+  else renderer.render(scene, camera);              // lighter path for phones
 }
 loop();
 
@@ -47,4 +50,5 @@ window.addEventListener('resize', function(){
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  postfx.setSize(window.innerWidth, window.innerHeight);
 });

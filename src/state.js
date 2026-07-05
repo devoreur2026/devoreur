@@ -4,4 +4,8 @@
 //   'playing'   -> in the maze, controlling the player
 //   'dead'      -> caught by an eater, death overlay up (awaiting respawn)
 //   'over'      -> round won by someone, win overlay + countdown up
-export var state = { phase: 'menu' };
+//
+// `quality` drives the visual tier: 'high' enables post-processing (bloom +
+// film grain + vignette) and the full particle/lighting budget; 'low' keeps
+// the lighter look for phones (direct render, fewer lights/particles).
+export var state = { phase: 'menu', quality: 'high' };

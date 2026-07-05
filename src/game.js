@@ -36,6 +36,20 @@ function start(){
 document.getElementById('startBtn').addEventListener('click', start);
 nameInput.addEventListener('keydown', function(e){ if (e.code === 'Enter') start(); });
 
+/* ---- Low / High graphics toggle (default Low on phones) ---- */
+var gfxLow = document.getElementById('gfxLow');
+var gfxHigh = document.getElementById('gfxHigh');
+var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+               (window.matchMedia && window.matchMedia('(pointer:coarse)').matches);
+function setQuality(q){
+  state.quality = q;
+  gfxLow.classList.toggle('on', q === 'low');
+  gfxHigh.classList.toggle('on', q === 'high');
+}
+gfxLow.addEventListener('click', function(){ setQuality('low'); });
+gfxHigh.addEventListener('click', function(){ setQuality('high'); });
+setQuality(isMobile ? 'low' : 'high');
+
 // New maze for a round (initial join or after a countdown).
 net.on('round', function(){
   var maze = buildMaze(net.grid, net.treasureT);
