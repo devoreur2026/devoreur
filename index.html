@@ -93,23 +93,13 @@
     text-shadow:0 0 60px rgba(255,206,107,.3)}
   .stats{margin-top:20px;font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:var(--dim);line-height:2.2}
   .stats b{color:var(--bone)}
-  /* ------- minimap + Torn Map ------- */
+  /* ------- minimap ------- */
   #mapCanvas{position:fixed;left:16px;bottom:16px;z-index:6;pointer-events:none;
     border:1px solid rgba(255,206,107,.28);box-shadow:0 0 20px rgba(0,0,0,.6);border-radius:3px}
   #mapCanvas.hide{display:none}
-  #toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);z-index:14;pointer-events:none;
-    background:rgba(4,5,10,.75);border:1px solid rgba(255,206,107,.4);color:var(--gold);
-    padding:10px 20px;font-size:13px;letter-spacing:.14em;white-space:nowrap;
-    box-shadow:0 0 30px rgba(255,206,107,.15);transition:opacity .4s}
-  #toast.hide{opacity:0}
-  #relicTag{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);z-index:6;pointer-events:none;
-    font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);
-    text-shadow:0 0 10px rgba(255,206,107,.5);white-space:nowrap}
-  #relicTag.hide{display:none}
   @media (max-width:640px){
     #hunters{display:none}
     #hint{font-size:9px;letter-spacing:.18em}
-    #relicTag{font-size:9px;letter-spacing:.14em}
   }
 </style>
 </head>
@@ -159,8 +149,6 @@
 </div>
 
 <canvas id="mapCanvas" class="hide"></canvas>
-<div id="toast" class="hide"></div>
-<div id="relicTag" class="hide">◈ You carry the Torn Map</div>
 
 <script src="./vendor/three.min.js"></script>
 <!-- post-processing example modules (vendored, legacy build; attach to global THREE) -->

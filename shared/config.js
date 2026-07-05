@@ -23,9 +23,3 @@ export var INPUT_HZ = 60;                // fixed input timestep rate
 export var INPUT_STEP = 1 / INPUT_HZ;    // seconds per input command
 export var MAX_CMD_DT = 0.05;            // server clamps any single input's dt to this
 export var MOVE_BUDGET_MAX = 0.4;        // accumulated movement-time tolerance (jitter/batching)
-
-// --- the Torn Map relic ---
-export var RELIC_MIN_D = 0.40;           // spawn between these fractions of the treasure's
-export var RELIC_MAX_D = 0.70;           //   BFS distance from spawn
-export var RELIC_PICKUP_D = 1.4;         // walk within this to pick it up
-export var CARRIER_HEAR_MULT = 1.5;      // eaters hear the carrier 50% farther

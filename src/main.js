@@ -4,7 +4,7 @@
 import { THREE } from './three.js';
 import { MSG } from '../shared/protocol.js';
 import { state } from './state.js';
-import { renderer, scene, camera, animateWorld, updateRelic } from './scene.js';
+import { renderer, scene, camera, animateWorld } from './scene.js';
 import { player, collectInputs, updateOffset, applyCamera, reconcile } from './player.js';
 import { net } from './net.js';
 import * as remotePlayers from './remotePlayers.js';
@@ -48,7 +48,6 @@ function loop(){
   remotePlayers.render(dt);
   eaters.sync(net.eaters);
   eaters.render(dt, t);
-  updateRelic(net.map, t);
   animateWorld(dt, t, player);
   mapview.update();
   updateHud(dt);

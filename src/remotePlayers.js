@@ -4,10 +4,6 @@
 import { THREE } from './three.js';
 import { scene, makeGlow, nameSprite } from './scene.js';
 import { player } from './player.js';
-import { net } from './net.js';
-
-var GOLD = new THREE.Color(0xffce6b);
-var WHITE = new THREE.Color(0xffffff);
 
 var entries = new Map();   // id -> { g, tx, tz, tyaw, tag }
 
@@ -64,29 +60,15 @@ function lerpAngle(a, b, t){
 
 export function render(dt){
   var k = Math.min(1, dt * 12);   // exponential smoothing toward latest snapshot
-  var carrier = net.map ? net.map.c : 0;
-  for (var pair of entries){
-    var pid = pair[0], e = pair[1];
+  for (var e of entries.values()){
     e.g.position.x += (e.tx - e.g.position.x) * k;
     e.g.position.z += (e.tz - e.g.position.z) * k;
     e.g.rotation.y = lerpAngle(e.g.rotation.y, e.tyaw, k);
+    // Everyone spawns on the same start cell; fade a player out when they're
+    // basically inside your camera so their name tag doesn't fill the screen.
     var dx = e.g.position.x - player.x, dz = e.g.position.z - player.z;
     var d = Math.sqrt(dx * dx + dz * dz);
     e.g.visible = d > 0.6;
-
-    var tag = e.g.userData.tag, mat = tag.material;
-    if (pid === carrier){
-      // Torn Map carrier: gold name tag, faintly visible even through walls.
-      mat.color.copy(GOLD);
-      mat.depthTest = false;
-      tag.renderOrder = 999;
-      mat.opacity = 0.6;
-    } else {
-      mat.color.copy(WHITE);
-      mat.depthTest = true;
-      tag.renderOrder = 0;
-      // fade out when basically inside your camera (everyone spawns on one cell)
-      mat.opacity = Math.max(0, Math.min(1, (d - 1.0) / 2.5));
-    }
+    e.g.userData.tag.material.opacity = Math.max(0, Math.min(1, (d - 1.0) / 2.5));
   }
 }

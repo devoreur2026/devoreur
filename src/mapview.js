@@ -1,8 +1,8 @@
 // Always-on minimap HUD (bottom-left): a top-down view of the real maze walls,
 // your own position + facing, and the Heart of the Maze in gold. Drawn every
-// round from the server-sent grid — no need to carry the relic to see it. The
-// static maze (walls + treasure) is cached to an offscreen canvas per round and
-// re-blitted each frame; only the player marker is redrawn live.
+// round from the server-sent grid. The static maze (walls + treasure) is cached
+// to an offscreen canvas per round and re-blitted each frame; only the player
+// marker is redrawn live.
 import { G } from '../shared/config.js';
 import { TX } from '../shared/maze.js';
 import { net } from './net.js';
@@ -11,7 +11,6 @@ import { player } from './player.js';
 
 var canvas = document.getElementById('mapCanvas');
 var ctx = canvas.getContext('2d');
-var tag = document.getElementById('relicTag');
 
 var cacheCanvas = document.createElement('canvas');
 var cachedGrid = null, cachedSize = 0, cachedTreasure = null;
@@ -43,7 +42,7 @@ function buildStatic(s){
 }
 
 export function update(){
-  if (!net.grid || state.phase === 'menu'){ canvas.classList.add('hide'); tag.classList.add('hide'); return; }
+  if (!net.grid || state.phase === 'menu'){ canvas.classList.add('hide'); return; }
   canvas.classList.remove('hide');
 
   var s = targetSize();
@@ -60,8 +59,4 @@ export function update(){
   ctx.strokeStyle = '#5ef2ff'; ctx.lineWidth = 1.6;
   ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx - Math.sin(player.yaw) * L, cy - Math.cos(player.yaw) * L); ctx.stroke();
   ctx.fillStyle = '#5ef2ff'; ctx.beginPath(); ctx.arc(cx, cy, Math.max(2, cell * 0.6), 0, 6.283); ctx.fill();
-
-  // still show that you carry the relic (it makes you louder + visible)
-  var carrier = net.id !== 0 && net.map && net.map.c === net.id;
-  tag.classList.toggle('hide', !(carrier && state.phase === 'playing'));
 }

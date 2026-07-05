@@ -2,7 +2,7 @@
 // Extended to hunt many players at once: each eater senses the nearest player
 // it can hear or see, chases along that player's BFS field, and kills on
 // contact. The server owns all of this; clients only render the results.
-import { KEEPER_COUNT, SIGHT_D, HEAR_D, KILL_D, WALK, EATER_PATROL, EATER_CHASE, CARRIER_HEAR_MULT } from '../shared/config.js';
+import { KEEPER_COUNT, SIGHT_D, HEAR_D, KILL_D, WALK, EATER_PATROL, EATER_CHASE } from '../shared/config.js';
 import { makeAgent, agentStep, pickPatrol } from './agents.js';
 
 export class Eaters {
@@ -42,7 +42,7 @@ export class Eaters {
   }
 
   // players: [{id,x,z,invuln,speed}]  getField: id -> BFS field  onKill: id => void
-  update(dt, t, players, getField, onKill, carrierId){
+  update(dt, t, players, getField, onKill){
     var maze = this.maze, rnd = this.rnd, self = this;
     for (var i = 0; i < this.list.length; i++){
       var k = this.list[i], a = k.a;
@@ -55,7 +55,6 @@ export class Eaters {
         if (d < nearestD){ nearestD = d; nearest = pl; }
         if (pl.invuln > 0) continue;
         var hearR = (pl.speed > WALK) ? 7.5 : HEAR_D;
-        if (pl.id === carrierId) hearR *= CARRIER_HEAR_MULT;   // the Torn Map makes you louder
         if (d < hearR || (d < SIGHT_D && maze.los(a.px, a.pz, pl.x, pl.z))){
           if (d < noticedD){ noticedD = d; noticed = pl; }
         }

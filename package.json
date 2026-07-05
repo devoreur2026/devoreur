@@ -6,8 +6,7 @@
   "description": "UMBRA — a real-time, server-authoritative multiplayer maze treasure hunt (Three.js)",
   "scripts": {
     "start": "node server/index.js",
-    "dev": "node server/index.js",
-    "dev:treasure": "UMBRA_DEV=1 node server/index.js"
+    "dev": "node server/index.js"
   },
   "engines": {
     "node": ">=18"

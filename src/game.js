@@ -98,17 +98,6 @@ net.on('state', function(){
   }
 });
 
-// Room-wide toast for "<name> has found the Torn Map!"
-var toastEl = document.getElementById('toast');
-var toastTimer = null;
-net.on('relic', function(m){
-  toastEl.textContent = (m.name || 'Someone') + ' has found the Torn Map!';
-  toastEl.classList.remove('hide');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(function(){ toastEl.classList.add('hide'); }, 3200);
-  Sfx.blip();
-});
-
 export function toggleMute(){
   if (!Sfx.master) return;
   Sfx.muted = !Sfx.muted;

@@ -94,16 +94,6 @@ left half of the screen is a move stick, right half looks.
 A **minimap** is always on screen (bottom-left): the real maze walls, your
 position + facing, and the Heart of the Maze in gold.
 
-## The Torn Map relic
-
-Each round a golden **relic** (a floating scroll with a column of light) spawns
-40–70% of the way to the Heart. Walk over it to pick it up — the whole room is
-told ("&lt;name&gt; has found the Torn Map!"). Carrying it marks you: your name
-tag glows gold and is faintly visible to others through walls, and eaters hear
-you 50% farther. Die and it drops at the spot for anyone to grab. All of this is
-server-authoritative and synced via snapshots, so a player joining mid-round
-sees the correct state.
-
 ## Testing / verification
 
 The build was verified with scripted tests (all passing): shared maze seed to
@@ -120,9 +110,3 @@ and replays unacknowledged inputs, blending any residual correction over
 ~100ms. To feel it under load, append **`?lag=200&jitter=60`** to the URL — a
 dev-only option that delays traffic both ways (a "SIM LAG" badge shows when
 it's on). There's also a `window.UMBRA` handle for inspection in the console.
-
-**Dev spawn (testing the treasure grab):** run the server with the dev flag —
-`npm run dev:treasure` (or set `UMBRA_DEV=1` in the host's env) — then open the
-game with **`?dev=treasure`**. You'll spawn a few cells from the Heart so you
-can walk over it and watch the win/next-round flow. It's ignored unless the
-server is started with `UMBRA_DEV=1`, so it can't be abused on a normal deploy.

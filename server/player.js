@@ -33,7 +33,6 @@ export class ServerPlayer {
     this.tile = -1;          // grid id of current tile (for field caching)
     this.field = null;       // BFS distance field from this player's tile
     this.fieldT = 0;
-    this.devSpawn = false;   // dev-only: spawn near the treasure (UMBRA_DEV)
   }
 
   spawnAt(wx, wz){

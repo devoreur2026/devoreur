@@ -8,10 +8,9 @@ export var MSG = {
   // server -> client
   WELCOME:    'welcome',   // { id, color }
   ROUND:      'round',     // { seed, grid(base64), treasure:{x,z}, start:{x,z} }  (new maze)
-  STATE:      'state',     // { time, players:[{...,ack}], eaters:[...], map:{g,x,z,c}, round:{...} }
+  STATE:      'state',     // { time, players:[{...,ack}], eaters:[...], round:{...} }
   KILLED:     'killed',    // { }  -> you were caught; server respawned you at start
-  ROUND_OVER: 'roundOver', // { winnerId, winnerName }
-  RELIC:      'relic'      // { name }  -> "<name> has found the Torn Map!"
+  ROUND_OVER: 'roundOver'  // { winnerId, winnerName }
 };
 
 // Round phases carried inside STATE.round.phase

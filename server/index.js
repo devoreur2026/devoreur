@@ -12,7 +12,6 @@ import { MSG } from '../shared/protocol.js';
 var __dirname = path.dirname(fileURLToPath(import.meta.url));
 var ROOT = path.resolve(__dirname, '..');   // project root (serves index.html, src/, shared/)
 var PORT = process.env.PORT || 5173;
-var DEV = process.env.UMBRA_DEV === '1';    // enables ?dev=treasure spawn override
 
 var MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -54,11 +53,9 @@ wss.on('connection', (ws) => {
 
     if (msg.t === MSG.JOIN && !player){
       var name = ('' + (msg.name || 'Anon')).slice(0, 16).trim() || 'Anon';
-      // dev-only spawn override, off unless the server runs with UMBRA_DEV=1
-      var dev = (DEV && msg.dev === 'treasure') ? 'treasure' : null;
       room = assignRoom();
-      player = room.addPlayer(name, ws, dev);
-      console.log('[join] "' + name + '" -> ' + room.name + ' (' + room.size + '/' + MAX_PLAYERS + ')' + (dev ? ' [dev:' + dev + ']' : ''));
+      player = room.addPlayer(name, ws);
+      console.log('[join] "' + name + '" -> ' + room.name + ' (' + room.size + '/' + MAX_PLAYERS + ')');
       return;
     }
     if (!player) return;
@@ -80,5 +77,4 @@ wss.on('connection', (ws) => {
 server.listen(PORT, () => {
   console.log('UMBRA server (game + web) running at http://localhost:' + PORT);
   console.log('Open two browser tabs there to test multiplayer.');
-  if (DEV) console.log('DEV mode ON — open with ?dev=treasure to spawn near the treasure.');
 });

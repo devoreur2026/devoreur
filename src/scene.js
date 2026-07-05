@@ -294,45 +294,6 @@ export var treasure = new THREE.Group();
 })();
 scene.add(treasure);
 
-/* ---- the Torn Map relic: a floating golden scroll + thin column of light ---- */
-export var relic = new THREE.Group();
-(function buildRelic(){
-  var parch = new THREE.MeshStandardMaterial({ color: 0xd9c48a, emissive: 0x6a4a12, emissiveIntensity: 1.1, roughness: 0.6, metalness: 0.2 });
-  var capMat = new THREE.MeshStandardMaterial({ color: 0xffce6b, emissive: 0x7a5410, emissiveIntensity: 1, roughness: 0.4, metalness: 0.5 });
-  var scroll = new THREE.Group();
-  var body = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.72, 12), parch); body.rotation.z = Math.PI / 2;
-  var c1 = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.06, 12), capMat); c1.rotation.z = Math.PI / 2; c1.position.x = 0.36;
-  var c2 = c1.clone(); c2.position.x = -0.36;
-  var glow = makeGlow(0xffd97a, 1.9, 0.6);
-  scroll.add(body, c1, c2, glow);
-  scroll.position.y = 1.15;
-  relic.add(scroll);
-  var beam = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.06, 0.22, WH, 14, 1, true),
-    new THREE.MeshBasicMaterial({ color: 0xffce6b, transparent: true, opacity: 0.16, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })
-  );
-  beam.position.y = WH / 2;
-  relic.add(beam);
-  relic.userData = { scroll: scroll, glow: glow, beam: beam };
-  relic.visible = false;
-})();
-scene.add(relic);
-
-// Show the relic only when it's lying on the ground this round.
-export function updateRelic(map, t){
-  if (map && map.g && state.phase === 'playing'){
-    relic.visible = true;
-    relic.position.set(map.x, 0, map.z);
-    var u = relic.userData;
-    u.scroll.position.y = 1.15 + Math.sin(t * 2) * 0.12;
-    u.scroll.rotation.y = t * 0.8;
-    u.glow.material.opacity = 0.55 + 0.25 * Math.sin(t * 2.5);
-    u.beam.material.opacity = 0.14 + 0.06 * Math.sin(t * 3);
-  } else {
-    relic.visible = false;
-  }
-}
-
 /* ---- (re)build the maze for a round from a server-sent grid ---- */
 export function buildMaze(grid, treasureT){
   var maze = createMaze(grid);
