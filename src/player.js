@@ -1,27 +1,42 @@
-// The local player: movement/stamina/collision, camera application, and all
-// input (keyboard, mouse + pointer-lock, touch sticks). Also droppable beacons,
-// since dropping one is an input action (E / on-screen).
+// The local player: client-side predicted movement/stamina/collision, camera,
+// and all input (keyboard, mouse + pointer-lock, touch). The server is
+// authoritative — we predict locally for responsiveness and snap back if the
+// server disagrees (see reconcile). Beacons are a local navigation aid.
 import { THREE } from './three.js';
-import { EYE, WALK, SPRINT } from './config.js';
-import { WX, isWall, blocked } from './maze.js';
+import { EYE, WALK, SPRINT } from '../shared/config.js';
+import { WX } from '../shared/maze.js';
 import { Sfx } from './audio.js';
 import { camera, canvas, scene, makeGlow } from './scene.js';
 import { state } from './state.js';
 import { toggleMute } from './game.js';
 
-export var player = { x: WX(1), z: WX(1), yaw: 0, pitch: 0, stamina: 100, bob: 0, moving: false, speed: 0, invuln: 0 };
+export var player = { x: 0, z: 0, yaw: 0, pitch: 0, stamina: 100, bob: 0, moving: false, speed: 0, invuln: 0 };
+
+var maze = null;
+export function setMaze(m){ maze = m; }
+
 export function resetYaw(){
-  player.yaw = !isWall(1, 2) ? Math.PI : -Math.PI / 2;
+  player.yaw = (maze && !maze.isWall(1, 2)) ? Math.PI : -Math.PI / 2;
   player.pitch = 0;
 }
-resetYaw();
+export function spawnAtStart(startT){
+  player.x = WX(startT.x); player.z = WX(startT.z);
+  player.stamina = 100; player.bob = 0;
+  resetYaw();
+}
+// Snap to the server's authoritative position when prediction drifts too far
+// (a rejected move, a kill, a big lag spike).
+export function reconcile(sx, sz){
+  var dx = player.x - sx, dz = player.z - sz;
+  if (dx * dx + dz * dz > 1.5 * 1.5){ player.x = sx; player.z = sz; }
+}
 
 var keys = {}, footTimer = 0;
 
-/* ---- beacons ---- */
+/* ---- beacons (local only) ---- */
 export var markers = [];
 export function dropMarker(){
-  if (!state.playing) return;
+  if (state.phase !== 'playing') return;
   var mk;
   if (markers.length >= 15){
     mk = markers.shift();
@@ -50,13 +65,13 @@ window.addEventListener('blur', function(){ keys = {}; dragging = false; });
 var dragging = false, lastMX = 0, lastMY = 0;
 canvas.addEventListener('mousedown', function(e){
   dragging = true; lastMX = e.clientX; lastMY = e.clientY;
-  if (state.playing && document.pointerLockElement !== canvas){
-    try { canvas.requestPointerLock(); } catch (err) {}
+  if (state.phase === 'playing' && document.pointerLockElement !== canvas){
+    try { var pl = canvas.requestPointerLock(); if (pl && pl.catch) pl.catch(function(){}); } catch (err) {}
   }
 });
 window.addEventListener('mouseup', function(){ dragging = false; });
 window.addEventListener('mousemove', function(e){
-  if (!state.playing) return;
+  if (state.phase !== 'playing') return;
   var mx = 0, my = 0;
   if (document.pointerLockElement === canvas){
     mx = e.movementX || 0; my = e.movementY || 0;
@@ -106,6 +121,7 @@ canvas.addEventListener('touchend', endTouch);
 canvas.addEventListener('touchcancel', endTouch);
 
 export function updatePlayer(dt){
+  if (state.phase !== 'playing' || !maze) return;
   var f = ((keys.KeyW || keys.ArrowUp) ? 1 : 0) - ((keys.KeyS || keys.ArrowDown) ? 1 : 0);
   var s = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0);
   if (keys.ArrowLeft) player.yaw += 2.4 * dt;
@@ -127,8 +143,8 @@ export function updatePlayer(dt){
     var sin = Math.sin(player.yaw), cos = Math.cos(player.yaw);
     var dx = (-sin * fx + cos * sx) * spd * dt;
     var dz = (-cos * fx - sin * sx) * spd * dt;
-    var nx = player.x + dx; if (!blocked(nx, player.z)) player.x = nx;
-    var nz = player.z + dz; if (!blocked(player.x, nz)) player.z = nz;
+    var nx = player.x + dx; if (!maze.blocked(nx, player.z)) player.x = nx;
+    var nz = player.z + dz; if (!maze.blocked(player.x, nz)) player.z = nz;
     player.bob += spd * dt * 1.35;
     footTimer -= dt;
     if (footTimer <= 0){ footTimer = spd > WALK ? 0.3 : 0.46; Sfx.step(spd > WALK); }

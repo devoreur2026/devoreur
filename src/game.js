@@ -1,44 +1,88 @@
-// Game flow: the start/death/win overlays and their buttons, the death and win
-// transitions, respawn (which scatters nearby keepers), and mute toggling.
+// Game flow, driven by server events. Owns the start screen (name entry ->
+// connect), maze (re)build on each ROUND, the server-decided death overlay,
+// and the round-over win overlay with its countdown to the next maze.
 import { state } from './state.js';
-import { player, resetYaw } from './player.js';
-import { keepers } from './enemies.js';
-import { WX, randOpenCell, best } from './maze.js';
+import { net } from './net.js';
+import { buildMaze, canvas } from './scene.js';
+import { player, setMaze, spawnAtStart, markers } from './player.js';
+import { scene } from './scene.js';
 import { Sfx } from './audio.js';
-import { canvas } from './scene.js';
-import { fmt } from './util.js';
 
 var ovStart = document.getElementById('ovStart');
 var ovDeath = document.getElementById('ovDeath');
 var ovWin = document.getElementById('ovWin');
 var flashEl = document.getElementById('flash');
-var deathsEl = document.getElementById('deaths');
 var hintEl = document.getElementById('hint');
+var nameInput = document.getElementById('nameInput');
+var winTitle = document.getElementById('winTitle');
+var countdownEl = document.getElementById('countdown');
 
-document.getElementById('startBtn').addEventListener('click', function(){
+function lockPointer(){
+  try { var p = canvas.requestPointerLock(); if (p && p.catch) p.catch(function(){}); } catch (e) {}
+}
+function clearMarkers(){
+  for (var i = 0; i < markers.length; i++) scene.remove(markers[i]);
+  markers.length = 0;
+}
+
+function start(){
+  var name = (nameInput.value || '').trim() || 'Anon';
   Sfx.init();
+  net.connect(name);
   ovStart.classList.add('hide');
-  state.playing = true;
-  try { canvas.requestPointerLock(); } catch (e) {}
+  lockPointer();
   setTimeout(function(){ hintEl.classList.add('fade'); }, 9000);
+}
+document.getElementById('startBtn').addEventListener('click', start);
+nameInput.addEventListener('keydown', function(e){ if (e.code === 'Enter') start(); });
+
+// New maze for a round (initial join or after a countdown).
+net.on('round', function(){
+  var maze = buildMaze(net.grid, net.treasureT);
+  setMaze(maze);
+  spawnAtStart(net.startT);
+  clearMarkers();
+  ovDeath.classList.add('hide');
+  ovWin.classList.add('hide');
+  state.phase = 'playing';
+  if (document.pointerLockElement !== canvas) lockPointer();
+});
+
+// The server caught us: it already respawned us at start; show the overlay.
+net.on('killed', function(){
+  if (state.phase === 'over') return;   // round already ending
+  state.phase = 'dead';
+  spawnAtStart(net.startT);
+  Sfx.sting();
+  flashEl.style.opacity = 0.75;
+  setTimeout(function(){ flashEl.style.opacity = 0; }, 180);
+  if (document.exitPointerLock) document.exitPointerLock();
+  setTimeout(function(){ ovDeath.classList.remove('hide'); }, 550);
 });
 document.getElementById('respawnBtn').addEventListener('click', function(){
   ovDeath.classList.add('hide');
-  player.x = WX(1); player.z = WX(1); resetYaw();
-  player.invuln = 3; player.stamina = 100; player.bob = 0;
-  for (var i = 0; i < keepers.length; i++){
-    var k = keepers[i]; k.state = 'patrol'; k.lost = 0;
-    var d = Math.sqrt((k.a.px - player.x) * (k.a.px - player.x) + (k.a.pz - player.z) * (k.a.pz - player.z));
-    if (d < 26){
-      var t = randOpenCell(best * 0.45, best * 0.95);
-      k.a.tx = t.x; k.a.tz = t.z; k.a.ttx = t.x; k.a.ttz = t.z;
-      k.a.px = WX(t.x); k.a.pz = WX(t.z); k.a.from = -1;
-    }
-  }
-  state.playing = true;
-  try { canvas.requestPointerLock(); } catch (e) {}
+  state.phase = 'playing';
+  lockPointer();
 });
-document.getElementById('againBtn').addEventListener('click', function(){ location.reload(); });
+
+// Someone reached the treasure: freeze into the win overlay + countdown.
+net.on('roundOver', function(m){
+  state.phase = 'over';
+  var mine = m.winnerId === net.id;
+  winTitle.textContent = mine ? 'The Heart of the Maze is yours'
+                              : (m.winnerName || 'Someone') + ' claimed the Heart';
+  ovDeath.classList.add('hide');
+  ovWin.classList.remove('hide');
+  if (document.exitPointerLock) document.exitPointerLock();
+  Sfx.chime();
+});
+
+// Keep the countdown fresh while the win overlay is up.
+net.on('state', function(){
+  if (state.phase === 'over' && net.round.phase === 'countdown'){
+    countdownEl.textContent = net.round.timeLeft;
+  }
+});
 
 export function toggleMute(){
   if (!Sfx.master) return;
@@ -47,22 +91,3 @@ export function toggleMute(){
   document.getElementById('mute').textContent = Sfx.muted ? '×' : '♪';
 }
 document.getElementById('mute').addEventListener('click', toggleMute);
-
-export function die(){
-  state.playing = false; state.deaths++;
-  deathsEl.textContent = state.deaths;
-  Sfx.sting();
-  flashEl.style.opacity = 0.75;
-  setTimeout(function(){ flashEl.style.opacity = 0; }, 180);
-  for (var i = 0; i < keepers.length; i++) keepers[i].state = 'patrol';
-  if (document.exitPointerLock) document.exitPointerLock();
-  setTimeout(function(){ ovDeath.classList.remove('hide'); }, 550);
-}
-export function win(){
-  state.playing = false; state.ended = true;
-  Sfx.chime();
-  document.getElementById('winTime').textContent = fmt(state.time);
-  document.getElementById('winDeaths').textContent = state.deaths;
-  if (document.exitPointerLock) document.exitPointerLock();
-  ovWin.classList.remove('hide');
-}

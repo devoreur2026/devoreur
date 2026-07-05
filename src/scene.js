@@ -1,10 +1,11 @@
 // Renderer, scene, camera, lights and all the static/animated world geometry:
 // procedural stone textures, floor/ceiling, instanced walls, the torch, dust
 // motes and the treasure (Heart of the Maze). Also the shared glow/name sprite
-// helpers reused by keepers and bots, and the per-frame world animation.
+// helpers reused by remote players and eaters, and the per-frame world
+// animation. The maze itself is (re)built from a server-sent grid each round.
 import { THREE } from './three.js';
-import { G, CS, WH, EYE } from './config.js';
-import { grid, id, isWall, WX, treasureT } from './maze.js';
+import { G, CS, WH, EYE } from '../shared/config.js';
+import { id, WX, createMaze } from '../shared/maze.js';
 
 export var canvas = document.getElementById('c');
 export var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, powerPreference: 'high-performance' });
@@ -63,27 +64,31 @@ var ceil = new THREE.Mesh(
 );
 ceil.rotation.x = Math.PI / 2; ceil.position.y = WH; scene.add(ceil);
 
-/* ---- walls (instanced) ---- */
+/* ---- walls (instanced) — (re)built each round from the server grid ---- */
 var wallTex = stoneTex('#181d2e', 0.5);
 var wallMat = new THREE.MeshStandardMaterial({ map: wallTex, bumpMap: wallTex, bumpScale: 0.09, roughness: 0.9, metalness: 0.08 });
-var wallList = [];
-for (var wz = 0; wz < G; wz++) for (var wx = 0; wx < G; wx++){
-  if (grid[id(wx, wz)] !== 1) continue;
-  if (!isWall(wx - 1, wz) || !isWall(wx + 1, wz) || !isWall(wx, wz - 1) || !isWall(wx, wz + 1)) wallList.push([wx, wz]);
-}
-var walls = new THREE.InstancedMesh(new THREE.BoxGeometry(CS, WH, CS), wallMat, wallList.length);
-(function placeWalls(){
+var wallGeo = new THREE.BoxGeometry(CS, WH, CS);
+var wallsMesh = null;
+function buildWalls(maze){
+  if (wallsMesh){ scene.remove(wallsMesh); wallsMesh.dispose(); }
+  var grid = maze.grid;
+  var wallList = [];
+  for (var wz = 0; wz < G; wz++) for (var wx = 0; wx < G; wx++){
+    if (grid[id(wx, wz)] !== 1) continue;
+    if (!maze.isWall(wx - 1, wz) || !maze.isWall(wx + 1, wz) || !maze.isWall(wx, wz - 1) || !maze.isWall(wx, wz + 1)) wallList.push([wx, wz]);
+  }
+  wallsMesh = new THREE.InstancedMesh(wallGeo, wallMat, wallList.length);
   var m = new THREE.Matrix4();
   var colArr = new Float32Array(wallList.length * 3);
   for (var i = 0; i < wallList.length; i++){
     m.setPosition(WX(wallList[i][0]), WH / 2, WX(wallList[i][1]));
-    walls.setMatrixAt(i, m);
+    wallsMesh.setMatrixAt(i, m);
     var sh = 0.8 + Math.random() * 0.35;
     colArr[i * 3] = sh * 0.92; colArr[i * 3 + 1] = sh * 0.97; colArr[i * 3 + 2] = sh * 1.12;
   }
-  walls.instanceColor = new THREE.InstancedBufferAttribute(colArr, 3);
-})();
-scene.add(walls);
+  wallsMesh.instanceColor = new THREE.InstancedBufferAttribute(colArr, 3);
+  scene.add(wallsMesh);
+}
 
 /* ---- shared glow sprite ---- */
 var glowMap = (function(){
@@ -162,8 +167,15 @@ export var treasure = new THREE.Group();
   }));
   treasure.add(sparks); treasure.userData.sparks = sparks;
 })();
-treasure.position.set(WX(treasureT.x), 0, WX(treasureT.z));
 scene.add(treasure);
+
+/* ---- (re)build the maze for a round from a server-sent grid ---- */
+export function buildMaze(grid, treasureT){
+  var maze = createMaze(grid);
+  buildWalls(maze);
+  treasure.position.set(WX(treasureT.x), 0, WX(treasureT.z));
+  return maze;
+}
 
 /* ---- per-frame world animation (torch follows the player) ---- */
 export function animateWorld(dt, t, player){

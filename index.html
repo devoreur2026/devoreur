@@ -71,6 +71,11 @@
     font-size:12px;letter-spacing:.42em;text-transform:uppercase;text-indent:.42em;
     transition:all .25s}
   .btn:hover{background:rgba(255,206,107,.08);box-shadow:0 0 34px rgba(255,206,107,.25);border-color:var(--gold)}
+  #nameInput{pointer-events:auto;margin-top:34px;display:block;width:300px;max-width:80vw;
+    background:rgba(233,227,209,.06);border:1px solid rgba(255,206,107,.35);color:var(--bone);
+    text-align:center;font-size:14px;letter-spacing:.16em;padding:13px 16px;outline:none}
+  #nameInput:focus{border-color:var(--gold)}
+  #nameInput::placeholder{color:#565b6e;letter-spacing:.12em}
   .fine{margin-top:26px;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#565b6e}
   .fine b{color:var(--dim)}
   h2{font-family:Georgia,serif;font-weight:400;font-size:clamp(30px,6vw,54px);letter-spacing:.1em;line-height:1.25}
@@ -109,8 +114,9 @@
     drift through the corridors, keeping what is theirs — if one finds you, it will not miss.
     Sprinting is loud. Beacons remember where you have been. Nothing else will.
   </p>
+  <input id="nameInput" maxlength="16" placeholder="enter your name" autocomplete="off">
   <button class="btn" id="startBtn">Enter the maze</button>
-  <div class="fine"><b>3 hunters online</b> — simulated for this prototype · live multiplayer arrives with the server build</div>
+  <div class="fine"><b>live multiplayer</b> — everyone here shares one maze · first to the Heart wins the round</div>
 </div>
 
 <div class="overlay hide" id="ovDeath">
@@ -121,9 +127,8 @@
 
 <div class="overlay hide" id="ovWin">
   <div class="eyebrow" style="color:var(--gold)">The keepers howl in the dark</div>
-  <h2>The Heart of the Maze is yours</h2>
-  <div class="stats">Time <b id="winTime">—</b> · Deaths <b id="winDeaths">0</b></div>
-  <button class="btn" id="againBtn">Descend again</button>
+  <h2 id="winTitle">The Heart of the Maze is claimed</h2>
+  <div class="stats">Next maze in <b id="countdown">10</b>s</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
