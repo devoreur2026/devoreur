@@ -16,5 +16,10 @@ export var MAX_PLAYERS = 12;             // per room
 export var WIN_DIST = 2.0;               // reach the treasure within this
 export var RESPAWN_INVULN = 3;           // seconds of grace after (re)spawn
 export var ROUND_COUNTDOWN = 10;         // seconds between rounds
-export var MOVE_TOLERANCE = 1.6;         // slack on the per-input speed cap
 export var FIELD_REFRESH = 0.35;         // how often a player's chase field is rebuilt
+
+// --- input / prediction ---
+export var INPUT_HZ = 60;                // fixed input timestep rate
+export var INPUT_STEP = 1 / INPUT_HZ;    // seconds per input command
+export var MAX_CMD_DT = 0.05;            // server clamps any single input's dt to this
+export var MOVE_BUDGET_MAX = 0.4;        // accumulated movement-time tolerance (jitter/batching)

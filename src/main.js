@@ -5,7 +5,7 @@ import { THREE } from './three.js';
 import { MSG } from '../shared/protocol.js';
 import { state } from './state.js';
 import { renderer, scene, camera, animateWorld } from './scene.js';
-import { player, updatePlayer, applyCamera, reconcile } from './player.js';
+import { player, collectInputs, updateOffset, applyCamera, reconcile } from './player.js';
 import { net } from './net.js';
 import * as remotePlayers from './remotePlayers.js';
 import * as eaters from './eaters.js';
@@ -13,32 +13,41 @@ import * as postfx from './postfx.js';
 import { updateHud } from './hud.js';
 import './game.js';   // registers server-event hooks + overlay buttons
 
-var clock = new THREE.Clock(), t = 0, lastSend = 0;
-var SEND_HZ = 30;
+window.UMBRA = { net, player, state };   // dev handle for debugging/inspection
+
+var clock = new THREE.Clock(), t = 0, lastSend = 0, lastRev = 0;
+var SEND_HZ = 30;                                  // batch fixed-step inputs into ~30 packets/s
+var sendBuf = [];
 
 function loop(){
   requestAnimationFrame(loop);
-  var dt = Math.min(0.05, clock.getDelta());
+  var dt = Math.min(0.05, clock.getDelta());       // clamp dt: a frame drop can't make one giant step
   t += dt;
 
   if (state.phase === 'playing'){
-    updatePlayer(dt);
-    var me = net.self();
-    if (me) reconcile(me.x, me.z);            // snap back if the server disagrees
-    if (t - lastSend > 1 / SEND_HZ){
+    var cmds = collectInputs(dt);                  // fixed-step prediction -> new input commands
+    for (var i = 0; i < cmds.length; i++) sendBuf.push(cmds[i]);
+    if (sendBuf.length && t - lastSend > 1 / SEND_HZ){
       lastSend = t;
-      net.send({ t: MSG.INPUT, x: player.x, z: player.z, yaw: player.yaw });
+      net.send({ t: MSG.INPUT, cmds: sendBuf });
+      sendBuf = [];
+    }
+    if (net.rev !== lastRev){                       // reconcile once per fresh snapshot
+      lastRev = net.rev;
+      var me = net.self();
+      if (me) reconcile(me.x, me.z, me.ack);
     }
   } else if (state.phase === 'menu'){
-    player.yaw += dt * 0.05;                  // slow drift behind the start screen
+    player.yaw += dt * 0.05;                        // slow drift behind the start screen
   }
+  updateOffset(dt);                                 // blend out any correction over ~100ms
 
+  applyCamera();                                    // sets player.x/z (render pos) + camera
   remotePlayers.sync(net.players, net.id);
   remotePlayers.render(dt);
   eaters.sync(net.eaters);
   eaters.render(dt, t);
   animateWorld(dt, t, player);
-  applyCamera();
   updateHud(dt);
 
   if (state.quality === 'high') postfx.render(t);   // bloom + grain + vignette

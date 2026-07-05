@@ -57,7 +57,6 @@ export class Room {
     var pid = nextPlayerId++;
     var p = new ServerPlayer(pid, name, this.players.size, ws);
     p.spawnAt(this.startWX.x, this.startWX.z);
-    p.lastInputT = Date.now() / 1000;
     this.players.set(pid, p);
     this.send(ws, { t: MSG.WELCOME, id: pid, color: p.color });
     this.send(ws, this.roundMsg());
@@ -65,9 +64,9 @@ export class Room {
   }
   removePlayer(id){ this.players.delete(id); }
 
-  onInput(p, x, z, yaw){
+  onInput(p, cmds){
     if (this.phase !== PHASE.PLAYING) return;
-    p.applyInput(this.maze, x, z, yaw, Date.now() / 1000);
+    p.applyCommands(this.maze, cmds, Date.now() / 1000);
   }
 
   // BFS field from a player's current tile, rebuilt on tile-change or timeout.

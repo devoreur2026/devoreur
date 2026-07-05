@@ -94,7 +94,16 @@ of the screen is a move stick, right half looks.
 ## Testing / verification
 
 The build was verified with scripted tests (all passing): shared maze seed to
-both clients; teleport and speed-hack rejected while legit moves accept; two
-headless browser tabs joining one room and seeing each other; server-decided
-kill + respawn; and the full round flow (win → winner announced → maze
-regenerated → countdown → next round).
+both clients; teleport and speed-hack rejected/clamped while legit moves apply;
+two headless browser tabs joining one room and seeing each other; server-decided
+kill + respawn; the full round flow (win → winner announced → maze regenerated →
+countdown → next round); and smooth walking/sprinting under 200ms simulated
+latency (no rubber-banding).
+
+**Netcode:** the client sends fixed-timestep, sequence-numbered inputs; the
+server simulates them authoritatively and acks the last processed sequence;
+the client predicts locally and, on each snapshot, resets to the server state
+and replays unacknowledged inputs, blending any residual correction over
+~100ms. To feel it under load, append **`?lag=200&jitter=60`** to the URL — a
+dev-only option that delays traffic both ways (a "SIM LAG" badge shows when
+it's on). There's also a `window.UMBRA` handle for inspection in the console.

@@ -3,12 +3,12 @@
 export var MSG = {
   // client -> server
   JOIN:   'join',    // { name }
-  INPUT:  'input',   // { x, z, yaw }  (client-predicted position; server validates)
+  INPUT:  'input',   // { cmds:[{ seq, dt, f, s, yaw, spd }] }  fixed-step inputs; server simulates
 
   // server -> client
   WELCOME:    'welcome',   // { id, color }
   ROUND:      'round',     // { seed, grid(base64), treasure:{x,z}, start:{x,z} }  (new maze)
-  STATE:      'state',     // { time, players:[...], eaters:[...], round:{phase,timeLeft,winner} }
+  STATE:      'state',     // { time, players:[{...,ack}], eaters:[...], round:{phase,timeLeft,winner} }
   KILLED:     'killed',    // { }  -> you were caught; server respawned you at start
   ROUND_OVER: 'roundOver'  // { winnerId, winnerName }
 };

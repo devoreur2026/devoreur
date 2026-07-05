@@ -60,10 +60,8 @@ wss.on('connection', (ws) => {
     }
     if (!player) return;
 
-    if (msg.t === MSG.INPUT){
-      if (typeof msg.x === 'number' && typeof msg.z === 'number' && typeof msg.yaw === 'number'){
-        room.onInput(player, msg.x, msg.z, msg.yaw);
-      }
+    if (msg.t === MSG.INPUT && Array.isArray(msg.cmds) && msg.cmds.length <= 64){
+      room.onInput(player, msg.cmds);
     }
   });
 
