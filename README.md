@@ -1,59 +1,91 @@
 # UMBRA — The Maze That Eats Light
 
-A 3D first-person maze treasure hunt built with Three.js (r128). A huge
-procedurally generated maze shrouded in darkness; you carry only a torch.
-"Darkness Eater" keepers patrol the corridors, hear you sprint, chase on sight,
-and kill on contact. The Heart of the Maze waits at the farthest point from
-spawn. Drop beacons, manage sprint stamina, and outrun the dark.
+A real-time, **server-authoritative multiplayer** 3D maze treasure hunt built
+with Three.js. Up to 12 players share one procedurally generated maze shrouded
+in darkness, each carrying only a torch. "Darkness Eater" wraiths patrol the
+corridors — they hear you sprint, chase you on sight, and kill on contact.
+The first player to reach the Heart of the Maze wins the round; then a new maze
+is generated and the next round begins.
+
+The server owns all the truth (maze, treasure, every player's position, the
+eaters, kills and wins). Clients send inputs and render; they can't cheat.
 
 ## Run it
 
 ```bash
-npm run dev      # serves at http://localhost:5173
+npm install     # once — installs `ws`
+npm start       # serves game + web at http://localhost:5173
 ```
 
-No install step — the dev server is a single zero-dependency Node script.
-Three.js is loaded from a CDN, so the first load needs an internet connection.
+Then open **two browser tabs** at http://localhost:5173, type a name in each,
+and click **Enter the maze** — both players appear in the same maze and can see
+each other. (Three.js loads from a CDN, so the first load needs internet.)
+
+> Tip: browsers throttle animation in *hidden* tabs, so put the two tabs in
+> separate windows side by side to see both move at full speed at once.
+
+## How the authority model works
+
+- **Maze** — the server generates a maze from a seed and sends the grid to
+  every client in the room. Everyone builds the identical maze; no client can
+  invent its own.
+- **Movement** — clients predict locally (so movement feels instant) and send
+  their position ~30×/s. The server validates every move against a speed cap
+  and full path/wall collision. Impossible moves (teleport, speed-hacks,
+  clipping through walls) are rejected and the client is snapped back on the
+  next broadcast.
+- **World state** — the server ticks at 20Hz and broadcasts all players + eater
+  positions. Clients interpolate the other players and eaters so 20Hz looks
+  smooth.
+- **Eaters, kills, wins** — all decided server-side. An eater touching a
+  vulnerable player is a kill (respawn at start, +1 death). Reaching the
+  treasure ends the round for everyone.
 
 ## Project structure
 
-The former single `umbra-maze.html` is split into ES modules under `src/`,
-loaded via `<script type="module">` from `index.html`.
+```
+index.html            Page shell; loads Three.js (CDN) then src/main.js
+server/
+  index.js            HTTP static server + WebSocket game server (entry point)
+  room.js             A room: maze, players, eaters, 20Hz tick, round flow
+  player.js           Authoritative player state + input validation (anti-cheat)
+  eaters.js           Multi-player Darkness Eater AI
+  agents.js           Grid-walking movement (server side)
+shared/               Isomorphic modules used by BOTH server and client
+  config.js           Constants (maze size, speeds, tick rate, room size…)
+  maze.js             Seeded generation + grid-bound queries (collision, BFS…)
+  prng.js             Seeded RNG (a seed reproduces a maze)
+  protocol.js         WebSocket message types + round phases
+src/                  Browser client
+  net.js              WebSocket client + latest snapshot + event hooks
+  scene.js            Renderer, lights, textures, torch, dust, treasure;
+                      (re)builds the maze geometry from the server grid
+  player.js           Local predicted movement, camera, input, reconciliation
+  remotePlayers.js    Renders other players (body + name tag), interpolated
+  eaters.js           Renders eaters from server snapshots, interpolated
+  hud.js              Stamina, danger/heartbeat, timer, deaths, player roster
+  game.js             Name entry, connect, round build, death & win overlays
+  main.js             The render/update loop tying it together
+  state.js, util.js   UI phase + helpers
+```
 
-| File | Responsibility |
-|------|----------------|
-| `index.html`   | Page shell: DOM, styles, loads Three.js (CDN) then `src/main.js`. |
-| `src/three.js` | Re-exports the global `THREE` (UMD CDN build) for clean imports. |
-| `src/config.js`| Tunable constants (maze size, speeds, sight/hearing ranges). |
-| `src/state.js` | Shared mutable game-flow state (`playing`, `ended`, `deaths`, `time`). |
-| `src/util.js`  | Small helpers (`fmt` time formatting). |
-| `src/maze.js`  | Maze generation (carve + braid), BFS distance fields, spawn/treasure placement, tile↔world coords, collision & line-of-sight. |
-| `src/agents.js`| Shared grid-walking movement used by keepers and bots. |
-| `src/audio.js` | Procedural Web Audio (ambient drone + one-shot SFX). |
-| `src/scene.js` | Renderer, scene, camera, lights, textures, walls, dust, treasure, glow/name sprites, per-frame world animation. |
-| `src/player.js`| Player movement/stamina, camera, all input (keyboard/mouse/touch), beacons. |
-| `src/enemies.js`| Darkness Eaters: sensing, chase pathfield, movement, kill check. |
-| `src/bots.js`  | Simulated rival hunters (placeholder for networked players). |
-| `src/hud.js`   | HUD updates: stamina, danger/shield, heartbeat, timer, hunter list. |
-| `src/game.js`  | Overlays and flow: start / death / respawn / win, mute. |
-| `src/main.js`  | Entry point: the render/update loop wiring everything together. |
-| `server.js`    | Zero-dependency static dev server. |
+### Reused from the original prototype
 
-### How the modules fit together
+The maze generation/BFS/collision, grid movement, and Darkness Eater AI were
+moved out of the old single-player client into `shared/` and `server/`. The
+old `bots.js` (fake simulated players) is gone — `src/remotePlayers.js` renders
+real networked players with the same body + name-tag visuals.
 
-`main.js` owns the loop and the shared `clock`/`state`. Each frame it advances
-time, runs `updatePlayer` → `updateField` → win check, then `updateKeepers` /
-`updateBots` / `animateWorld` / `applyCamera` / `updateHud` and renders.
+## Controls
 
-Cross-cutting state lives in `state.js` so modules don't have to import each
-other just to read `playing`. The keeper "kill" is injected into
-`updateKeepers` as a callback (`die`) so `enemies.js` stays independent of game
-flow. `scene.js` exposes the world objects and the shared `makeGlow` /
-`nameSprite` helpers that keepers, bots and the treasure all reuse.
+WASD / arrows move · mouse look (click to lock pointer) · Shift sprint (loud —
+eaters hear you) · **E** drop a beacon · **M** mute. On touch devices: left half
+of the screen is a move stick, right half looks.
 
-## Roadmap
+## Testing / verification
 
-This is the prototype. The vision is real-time, server-authoritative
-multiplayer — many players hunting the same treasure in the same maze — which
-is why the maze, agent movement and simulated bots are already isolated in
-their own modules.
+The build was verified with scripted tests (all passing): shared maze seed to
+both clients; teleport and speed-hack rejected while legit moves accept; two
+headless browser tabs joining one room and seeing each other; server-decided
+kill + respawn; and the full round flow (win → winner announced → maze
+regenerated → countdown → next round).
