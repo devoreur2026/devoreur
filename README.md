@@ -19,10 +19,18 @@ npm start       # serves game + web at http://localhost:5173
 
 Then open **two browser tabs** at http://localhost:5173, type a name in each,
 and click **Enter the maze** — both players appear in the same maze and can see
-each other. (Three.js loads from a CDN, so the first load needs internet.)
+each other. Three.js is vendored into `vendor/`, so there are no external
+runtime dependencies — it runs fully offline.
 
 > Tip: browsers throttle animation in *hidden* tabs, so put the two tabs in
 > separate windows side by side to see both move at full speed at once.
+
+## Deploy it online
+
+See **[DEPLOY.md](DEPLOY.md)** for a step-by-step, beginner-friendly guide:
+push to GitHub, then deploy to Railway (always-on) or Render (free). The server
+listens on `process.env.PORT` and the client auto-uses `wss://` over HTTPS, so
+it works behind a host's TLS proxy with no config.
 
 ## How the authority model works
 
@@ -44,7 +52,8 @@ each other. (Three.js loads from a CDN, so the first load needs internet.)
 ## Project structure
 
 ```
-index.html            Page shell; loads Three.js (CDN) then src/main.js
+index.html            Page shell; loads Three.js (vendor/) then src/main.js
+vendor/three.min.js   Three.js r128, vendored (no external runtime deps)
 server/
   index.js            HTTP static server + WebSocket game server (entry point)
   room.js             A room: maze, players, eaters, 20Hz tick, round flow
