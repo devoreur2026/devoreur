@@ -5,7 +5,8 @@
 // countdown regenerates the maze for the next round).
 import { generateMaze, WX, TX, id } from '../shared/maze.js';
 import {
-  TICK_DT, MAX_PLAYERS, WIN_DIST, WALK, FIELD_REFRESH, ROUND_COUNTDOWN
+  TICK_DT, MAX_PLAYERS, WIN_DIST, FIELD_REFRESH, ROUND_COUNTDOWN,
+  RELIC_MIN_D, RELIC_MAX_D, RELIC_PICKUP_D
 } from '../shared/config.js';
 import { MSG, PHASE } from '../shared/protocol.js';
 import { Eaters } from './eaters.js';
@@ -45,12 +46,22 @@ export class Room {
     this.startT = gen.startT;
     this.startWX = { x: WX(this.startT.x), z: WX(this.startT.z) };
     this.treasureWX = { x: WX(this.treasureT.x), z: WX(this.treasureT.z) };
+    this.best = gen.best;
+    this.rnd = gen.rnd;
     this.eaters = new Eaters(this.maze, this.dS, gen.best, gen.rnd);
+    this.spawnRelic();
     this.phase = PHASE.PLAYING;
     this.winnerName = null;
     this.t = 0;
     for (var p of this.players.values()) p.spawnAt(this.startWX.x, this.startWX.z);
     this.broadcast(this.roundMsg());
+  }
+
+  // The Torn Map relic: one per round, on an open cell 40–70% of the treasure's
+  // BFS distance from spawn. Lives on the ground until someone walks over it.
+  spawnRelic(){
+    var cell = this.maze.randOpenCell(this.dS, RELIC_MIN_D * this.best, RELIC_MAX_D * this.best, this.rnd);
+    this.relic = { onGround: true, carrier: 0, x: WX(cell.x), z: WX(cell.z) };
   }
 
   addPlayer(name, ws){
@@ -62,7 +73,13 @@ export class Room {
     this.send(ws, this.roundMsg());
     return p;
   }
-  removePlayer(id){ this.players.delete(id); }
+  removePlayer(id){
+    if (this.relic && this.relic.carrier === id){
+      var p = this.players.get(id);
+      this.dropRelicAt(p ? p.x : this.relic.x, p ? p.z : this.relic.z);
+    }
+    this.players.delete(id);
+  }
 
   onInput(p, cmds){
     if (this.phase !== PHASE.PLAYING) return;
@@ -81,9 +98,35 @@ export class Room {
     }
   }
 
+  // Pick-up detection (walk over) + keep a carried relic on the carrier.
+  updateRelic(){
+    var r = this.relic;
+    if (r.onGround){
+      for (var pp of this.players.values()){
+        var dx = pp.x - r.x, dz = pp.z - r.z;
+        if (dx * dx + dz * dz < RELIC_PICKUP_D * RELIC_PICKUP_D){
+          r.onGround = false; r.carrier = pp.id;
+          this.broadcast({ t: MSG.RELIC, name: pp.name });
+          break;
+        }
+      }
+    } else {
+      var carrier = this.players.get(r.carrier);
+      if (carrier){ r.x = carrier.x; r.z = carrier.z; }
+      else { r.onGround = true; r.carrier = 0; }   // carrier vanished -> drop where last known
+    }
+  }
+
+  // Drop the relic at a spot for anyone to grab.
+  dropRelicAt(x, z){
+    this.relic.onGround = true; this.relic.carrier = 0;
+    this.relic.x = x; this.relic.z = z;
+  }
+
   kill(pid){
     var p = this.players.get(pid);
     if (!p || p.invuln > 0) return;
+    if (this.relic.carrier === pid) this.dropRelicAt(p.x, p.z);   // drops at the death spot
     p.deaths++;
     p.spawnAt(this.startWX.x, this.startWX.z);
     this.send(p.ws, { t: MSG.KILLED });
@@ -119,10 +162,13 @@ export class Room {
       arr.push({ id: p.id, x: p.x, z: p.z, invuln: p.invuln, speed: p.speed });
     }
 
+    this.updateRelic();
+
     var self = this;
     this.eaters.update(dt, this.t, arr,
       function(pid){ var pp = self.players.get(pid); return pp ? pp.field : null; },
-      function(pid){ self.kill(pid); });
+      function(pid){ self.kill(pid); },
+      this.relic.carrier);
 
     // win: first player to the treasure
     for (var pw of this.players.values()){
@@ -141,6 +187,7 @@ export class Room {
       time: +this.t.toFixed(2),
       players: players,
       eaters: this.eaters.snapshot(),
+      map: { g: this.relic.onGround ? 1 : 0, x: +this.relic.x.toFixed(2), z: +this.relic.z.toFixed(2), c: this.relic.carrier },
       round: {
         phase: this.phase,
         timeLeft: this.phase === PHASE.COUNTDOWN ? Math.ceil(this.countdown) : 0,
