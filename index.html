@@ -93,15 +93,10 @@
     text-shadow:0 0 60px rgba(255,206,107,.3)}
   .stats{margin-top:20px;font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:var(--dim);line-height:2.2}
   .stats b{color:var(--bone)}
-  /* ------- Torn Map ------- */
-  #mapCanvas{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:15;
-    box-shadow:0 0 70px rgba(0,0,0,.85);border:1px solid rgba(255,206,107,.35);background:#06080d}
+  /* ------- minimap + Torn Map ------- */
+  #mapCanvas{position:fixed;left:16px;bottom:16px;z-index:6;pointer-events:none;
+    border:1px solid rgba(255,206,107,.28);box-shadow:0 0 20px rgba(0,0,0,.6);border-radius:3px}
   #mapCanvas.hide{display:none}
-  #mapBtn{position:fixed;right:16px;bottom:96px;z-index:12;pointer-events:auto;
-    background:rgba(255,206,107,.09);border:1px solid rgba(255,206,107,.5);color:var(--gold);
-    padding:13px 18px;border-radius:8px;font-size:12px;letter-spacing:.2em;text-transform:uppercase;
-    cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:none}
-  #mapBtn.hide{display:none}
   #toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);z-index:14;pointer-events:none;
     background:rgba(4,5,10,.75);border:1px solid rgba(255,206,107,.4);color:var(--gold);
     padding:10px 20px;font-size:13px;letter-spacing:.14em;white-space:nowrap;
@@ -164,9 +159,8 @@
 </div>
 
 <canvas id="mapCanvas" class="hide"></canvas>
-<button id="mapBtn" class="hide">Map</button>
 <div id="toast" class="hide"></div>
-<div id="relicTag" class="hide">◈ You carry the Torn Map — hold M to read</div>
+<div id="relicTag" class="hide">◈ You carry the Torn Map</div>
 
 <script src="./vendor/three.min.js"></script>
 <!-- post-processing example modules (vendored, legacy build; attach to global THREE) -->
