@@ -1,0 +1,10 @@
+{
+  "name": "umbra",
+  "version": "0.1.0",
+  "private": true,
+  "description": "UMBRA — a 3D first-person maze treasure hunt built with Three.js",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  }
+}

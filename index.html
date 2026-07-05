@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#04050a">
+<title>UMBRA — The Maze That Eats Light</title>
+<style>
+  :root{
+    --abyss:#04050a; --bone:#e9e3d1; --ember:#ffa050; --gold:#ffce6b;
+    --violet:#8a6bff; --blood:#ff3b2f; --beacon:#5ef2ff; --dim:#8b8fa3;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:var(--abyss);
+    font-family:"Segoe UI",system-ui,-apple-system,sans-serif;color:var(--bone);
+    user-select:none;-webkit-user-select:none;touch-action:none}
+  #c{position:fixed;inset:0;display:block;cursor:crosshair}
+
+  /* ------- atmosphere layers ------- */
+  #vig,#danger,#shield,#flash{position:fixed;inset:0;pointer-events:none}
+  #vig{background:radial-gradient(ellipse at center, transparent 46%, rgba(0,0,0,.72) 100%)}
+  #danger{background:radial-gradient(ellipse at center, transparent 40%, rgba(120,6,6,.85) 100%);
+    opacity:0;transition:opacity .25s}
+  #shield{background:radial-gradient(ellipse at center, transparent 55%, rgba(94,180,255,.35) 100%);
+    opacity:0;transition:opacity .4s}
+  #flash{background:#5c0000;opacity:0;transition:opacity .12s}
+
+  /* ------- HUD ------- */
+  #hud{position:fixed;inset:0;pointer-events:none;z-index:5}
+  .tag{font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--dim)}
+  #topL{position:absolute;top:16px;left:18px}
+  #topL b{color:var(--blood);font-weight:600;margin-left:6px}
+  #topR{position:absolute;top:12px;right:16px;display:flex;gap:12px;align-items:center}
+  #timer{font-variant-numeric:tabular-nums;font-size:15px;letter-spacing:.18em;color:var(--bone)}
+  #mute{pointer-events:auto;background:transparent;border:1px solid rgba(233,227,209,.25);
+    color:var(--bone);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:13px;line-height:1}
+  #mute:hover{border-color:var(--ember);color:var(--ember)}
+  #cross{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;
+    border-radius:50%;background:rgba(233,227,209,.75);box-shadow:0 0 8px rgba(233,227,209,.5)}
+  #stamWrap{position:absolute;left:50%;bottom:56px;transform:translateX(-50%);
+    width:190px;height:4px;background:rgba(233,227,209,.14);border-radius:2px;overflow:hidden}
+  #stam{height:100%;width:100%;background:linear-gradient(90deg,var(--ember),var(--gold));
+    transition:width .1s linear}
+  #hint{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);
+    font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--dim);
+    white-space:nowrap;transition:opacity 1.6s}
+  #hint.fade{opacity:0}
+  #hunters{position:absolute;right:16px;bottom:22px;text-align:right}
+  #botList{margin-top:6px;font-size:12px;letter-spacing:.1em;line-height:1.8;
+    font-variant-numeric:tabular-nums}
+  #botList .nm{font-weight:600}
+  #botList .ds{color:var(--dim);margin-left:8px}
+
+  /* ------- overlays ------- */
+  .overlay{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;padding:24px;
+    background:rgba(4,5,10,.84);backdrop-filter:blur(6px)}
+  .overlay.hide{display:none}
+  .eyebrow{font-size:11px;letter-spacing:.5em;text-transform:uppercase;color:var(--violet);margin-bottom:18px}
+  h1{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(52px,10vw,104px);
+    letter-spacing:.14em;text-indent:.14em;line-height:1;
+    background:linear-gradient(180deg,#f5efdc 20%,#7d7460 90%);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+    text-shadow:0 0 60px rgba(138,107,255,.18)}
+  .sub{font-family:Georgia,serif;font-style:italic;font-size:16px;color:var(--dim);margin-top:14px}
+  .story{max-width:430px;margin:30px auto 0;font-size:13.5px;line-height:2;color:#b9b4a3;letter-spacing:.04em}
+  .story em{color:var(--ember);font-style:normal}
+  .story .k{color:var(--violet)}
+  .btn{pointer-events:auto;margin-top:38px;padding:15px 46px;background:transparent;cursor:pointer;
+    border:1px solid rgba(255,206,107,.45);color:var(--gold);
+    font-size:12px;letter-spacing:.42em;text-transform:uppercase;text-indent:.42em;
+    transition:all .25s}
+  .btn:hover{background:rgba(255,206,107,.08);box-shadow:0 0 34px rgba(255,206,107,.25);border-color:var(--gold)}
+  .fine{margin-top:26px;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#565b6e}
+  .fine b{color:var(--dim)}
+  h2{font-family:Georgia,serif;font-weight:400;font-size:clamp(30px,6vw,54px);letter-spacing:.1em;line-height:1.25}
+  #ovDeath h2{color:#e8574a;text-shadow:0 0 40px rgba(255,59,47,.35)}
+  #ovWin h2{background:linear-gradient(180deg,#ffe9ad,#c98f2e);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+    text-shadow:0 0 60px rgba(255,206,107,.3)}
+  .stats{margin-top:20px;font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:var(--dim);line-height:2.2}
+  .stats b{color:var(--bone)}
+  @media (max-width:640px){
+    #hunters{display:none}
+    #hint{font-size:9px;letter-spacing:.18em}
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="vig"></div><div id="danger"></div><div id="shield"></div><div id="flash"></div>
+
+<div id="hud">
+  <div id="topL" class="tag">Deaths<b id="deaths">0</b></div>
+  <div id="topR"><span id="timer">00:00</span><button id="mute" title="sound">♪</button></div>
+  <div id="cross"></div>
+  <div id="stamWrap"><div id="stam"></div></div>
+  <div id="hunters"><div class="tag">Hunters in the maze</div><div id="botList"></div></div>
+  <div id="hint">WASD move · mouse look · Shift sprint · E drop beacon</div>
+</div>
+
+<div class="overlay" id="ovStart">
+  <div class="eyebrow">A treasure hunt in the dark</div>
+  <h1>UMBRA</h1>
+  <div class="sub">the maze that eats light</div>
+  <p class="story">
+    Somewhere in this labyrinth burns <em>the Heart of the Maze</em>.
+    Your torch reaches only a few steps ahead. The <span class="k">Darkness&nbsp;Eaters</span>
+    drift through the corridors, keeping what is theirs — if one finds you, it will not miss.
+    Sprinting is loud. Beacons remember where you have been. Nothing else will.
+  </p>
+  <button class="btn" id="startBtn">Enter the maze</button>
+  <div class="fine"><b>3 hunters online</b> — simulated for this prototype · live multiplayer arrives with the server build</div>
+</div>
+
+<div class="overlay hide" id="ovDeath">
+  <div class="eyebrow" style="color:#e8574a">It was already behind you</div>
+  <h2>A Darkness Eater found you</h2>
+  <button class="btn" id="respawnBtn" style="border-color:rgba(232,87,74,.5);color:#e8574a">Rise again</button>
+</div>
+
+<div class="overlay hide" id="ovWin">
+  <div class="eyebrow" style="color:var(--gold)">The keepers howl in the dark</div>
+  <h2>The Heart of the Maze is yours</h2>
+  <div class="stats">Time <b id="winTime">—</b> · Deaths <b id="winDeaths">0</b></div>
+  <button class="btn" id="againBtn">Descend again</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
