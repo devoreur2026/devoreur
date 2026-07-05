@@ -3,8 +3,9 @@
 // and are smoothly interpolated so movement doesn't stutter at 20Hz.
 import { THREE } from './three.js';
 import { scene, makeGlow, nameSprite } from './scene.js';
+import { player } from './player.js';
 
-var entries = new Map();   // id -> { g, tx, tz, tyaw }
+var entries = new Map();   // id -> { g, tx, tz, tyaw, tag }
 
 function makeMesh(name, color){
   var g = new THREE.Group();
@@ -20,6 +21,7 @@ function makeMesh(name, color){
   var lg = makeGlow(0xffc37a, 1.6, 0.7); lg.position.copy(lantern.position);
   var tag = nameSprite(name, '#' + col.getHexString()); tag.position.y = 2.4;
   g.add(body, head, visor, lantern, lg, tag);
+  g.userData.tag = tag;
   return g;
 }
 
@@ -62,5 +64,11 @@ export function render(dt){
     e.g.position.x += (e.tx - e.g.position.x) * k;
     e.g.position.z += (e.tz - e.g.position.z) * k;
     e.g.rotation.y = lerpAngle(e.g.rotation.y, e.tyaw, k);
+    // Everyone spawns on the same start cell; fade a player out when they're
+    // basically inside your camera so their name tag doesn't fill the screen.
+    var dx = e.g.position.x - player.x, dz = e.g.position.z - player.z;
+    var d = Math.sqrt(dx * dx + dz * dz);
+    e.g.visible = d > 0.6;
+    e.g.userData.tag.material.opacity = Math.max(0, Math.min(1, (d - 1.0) / 2.5));
   }
 }
