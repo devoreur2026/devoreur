@@ -16,8 +16,11 @@ var cacheCanvas = document.createElement('canvas');
 var cachedGrid = null, cachedSize = 0, cachedTreasure = null;
 
 function targetSize(){
-  var s = Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.24);
-  return Math.max(150, Math.min(230, s));
+  var vw = window.innerWidth, vh = window.innerHeight;
+  var s = Math.round(Math.min(vw, vh) * 0.24);
+  // phones: a much smaller minimap so it doesn't dominate the screen
+  var phone = vw <= 640 || (window.matchMedia && window.matchMedia('(pointer:coarse)').matches);
+  return phone ? Math.max(92, Math.min(132, s)) : Math.max(150, Math.min(230, s));
 }
 
 // Bake the walls + treasure marker (static for the round) into an offscreen canvas.

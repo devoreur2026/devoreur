@@ -61,8 +61,13 @@
 
   /* ------- overlays ------- */
   .overlay{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;text-align:center;padding:24px;
+    align-items:center;justify-content:flex-start;text-align:center;padding:24px;
+    overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;
     background:rgba(4,5,10,.84);backdrop-filter:blur(6px)}
+  /* centre the content when it fits, but let it scroll from the top when it's
+     taller than the screen (phones) instead of clipping the top/bottom */
+  .overlay>:first-child{margin-top:auto}
+  .overlay>:last-child{margin-bottom:auto}
   .overlay.hide{display:none}
   .eyebrow{font-size:11px;letter-spacing:.5em;text-transform:uppercase;color:var(--violet);margin-bottom:18px}
   h1{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(52px,10vw,104px);
@@ -176,9 +181,23 @@
   #mapCanvas{position:fixed;left:16px;bottom:16px;z-index:6;pointer-events:none;
     border:1px solid rgba(255,206,107,.28);box-shadow:0 0 20px rgba(0,0,0,.6);border-radius:3px}
   #mapCanvas.hide{display:none}
-  @media (max-width:640px){
+  /* phones: shrink the in-game HUD so text/bars/map don't look oversized */
+  @media (max-width:640px), (pointer:coarse){
     #hunters{display:none}
-    #hint{font-size:9px;letter-spacing:.18em}
+    #hint{font-size:9px;letter-spacing:.18em;bottom:20px}
+    #timer{font-size:12px;letter-spacing:.1em}
+    #topL{top:12px;left:12px}
+    #topL .tag,.tag{font-size:8px;letter-spacing:.22em}
+    #walletBar{top:34px;left:12px;font-size:10px;letter-spacing:.05em}
+    #potBar{top:32px;font-size:10px;letter-spacing:.08em}
+    #killfeed{top:34px;right:12px;font-size:10px;line-height:1.5}
+    #stamWrap,#healthWrap{width:140px}
+    #stamWrap{bottom:46px}
+    #healthWrap{bottom:55px;height:7px}
+    #healthLbl{bottom:66px;font-size:8px}
+    #mapCanvas{left:10px;bottom:10px}
+    #spectateBanner{top:15%;font-size:11px;line-height:1.5;padding:10px 16px;max-width:90vw}
+    #spectateBanner b{font-size:13px;letter-spacing:.2em;margin-bottom:6px}
   }
 </style>
 </head>
