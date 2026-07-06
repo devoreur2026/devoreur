@@ -42,6 +42,13 @@
     width:190px;height:4px;background:rgba(233,227,209,.14);border-radius:2px;overflow:hidden}
   #stam{height:100%;width:100%;background:linear-gradient(90deg,var(--ember),var(--gold));
     transition:width .1s linear}
+  #healthWrap{position:absolute;left:50%;bottom:66px;transform:translateX(-50%);
+    width:190px;height:9px;background:rgba(233,227,209,.14);border-radius:3px;overflow:hidden;
+    box-shadow:0 0 0 1px rgba(0,0,0,.4)}
+  #health{height:100%;width:100%;background:linear-gradient(90deg,#e8574a,#ff9d54,#6ee7a8);
+    transition:width .12s linear}
+  #healthLbl{position:absolute;left:50%;bottom:78px;transform:translateX(-50%);
+    font-size:9px;letter-spacing:.24em;color:var(--dim)}
   #hint{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);
     font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--dim);
     white-space:nowrap;transition:opacity 1.6s}
@@ -171,6 +178,8 @@
   <div id="potBar">POT <b id="potVal">0</b> · <span id="entryVal"></span> · <span id="bonusVal"></span></div>
   <div id="killfeed"></div>
   <div id="cross"></div>
+  <div id="healthLbl">HEALTH</div>
+  <div id="healthWrap"><div id="health"></div></div>
   <div id="stamWrap"><div id="stam"></div></div>
   <div id="hunters"><div class="tag">Hunters in the maze</div><div id="botList"></div></div>
   <div id="hint">WASD move · mouse look · Shift sprint · click throw fireball · E beacon</div>

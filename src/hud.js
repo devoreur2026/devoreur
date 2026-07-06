@@ -7,10 +7,12 @@ import { Sfx } from './audio.js';
 import { state } from './state.js';
 import { net } from './net.js';
 import { fmt } from './util.js';
+import { MAX_HEALTH } from '../shared/config.js';
 
 var dangerEl = document.getElementById('danger');
 var shieldEl = document.getElementById('shield');
 var stamEl = document.getElementById('stam');
+var healthEl = document.getElementById('health');
 var timerEl = document.getElementById('timer');
 var botListEl = document.getElementById('botList');
 var deathsEl = document.getElementById('deaths');
@@ -33,6 +35,9 @@ export function updateHud(dt){
   var me = net.self();
 
   stamEl.style.width = player.stamina + '%';
+  // health is server-authoritative — read it straight from the snapshot
+  var hp = me && typeof me.hp === 'number' ? me.hp : MAX_HEALTH;
+  healthEl.style.width = Math.max(0, Math.min(1, hp / MAX_HEALTH)) * 100 + '%';
   dangerEl.style.opacity = playing ? Math.max(0, Math.min(0.85, 1 - nearest / 12)) : 0;
   shieldEl.style.opacity = (me && me.invuln) ? 0.5 : 0;
 

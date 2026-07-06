@@ -4,9 +4,15 @@
 import { THREE } from './three.js';
 import { scene, makeGlow, nameSprite } from './scene.js';
 import { player } from './player.js';
+import { MAX_HEALTH } from '../shared/config.js';
 
 var entries = new Map();   // id -> { g, tx, tz, tyaw, tag }
 
+function healthSprite(color){
+  var m = new THREE.SpriteMaterial({ color: color, depthTest: true, depthWrite: false, transparent: true });
+  var s = new THREE.Sprite(m);
+  return s;
+}
 function makeMesh(name, color){
   var g = new THREE.Group();
   var col = new THREE.Color(color);
@@ -20,9 +26,21 @@ function makeMesh(name, color){
   lantern.position.set(0.42, 1.05, 0.14);
   var lg = makeGlow(0xffc37a, 1.6, 0.7); lg.position.copy(lantern.position);
   var tag = nameSprite(name, '#' + col.getHexString()); tag.position.y = 2.4;
-  g.add(body, head, visor, lantern, lg, tag);
-  g.userData.tag = tag;
+  // small health bar above the head — only visible when the player is wounded
+  var barBg = healthSprite(0x0a0c12); barBg.material.opacity = 0.6; barBg.scale.set(0.78, 0.13, 1); barBg.position.y = 2.12; barBg.renderOrder = 1;
+  var barFill = healthSprite(0x6ee7a8); barFill.scale.set(0.72, 0.09, 1); barFill.position.y = 2.12; barFill.renderOrder = 2;
+  g.add(body, head, visor, lantern, lg, tag, barBg, barFill);
+  g.userData.tag = tag; g.userData.barBg = barBg; g.userData.barFill = barFill;
   return g;
+}
+// left-anchored fill + green->amber->red, hidden at full health
+function setHealthBar(g, hp){
+  var frac = Math.max(0, Math.min(1, (typeof hp === 'number' ? hp : MAX_HEALTH) / MAX_HEALTH));
+  var bg = g.userData.barBg, fill = g.userData.barFill;
+  bg.visible = fill.visible = frac < 1;
+  fill.scale.x = 0.72 * frac;
+  fill.position.x = -0.36 * (1 - frac);
+  fill.material.color.setHex(frac > 0.5 ? 0x6ee7a8 : frac > 0.25 ? 0xffd166 : 0xe8574a);
 }
 
 // Reconcile the scene with the latest roster (everyone except me).
@@ -40,6 +58,7 @@ export function sync(players, selfId){
       entries.set(p.id, e);
     }
     e.tx = p.x; e.tz = p.z; e.tyaw = p.yaw;
+    setHealthBar(e.g, p.hp);              // wounded indicator (server-authoritative hp)
   }
   // drop players who left
   for (var id of entries.keys()){
