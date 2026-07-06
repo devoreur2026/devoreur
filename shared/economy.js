@@ -8,6 +8,9 @@ export var COIN = 'CDF';
 export var CREDIT = 'credit';       // spendable
 export var EARNINGS = 'earnings';   // winnings
 export var HOLD = 'hold';           // earnings held while a withdrawal is in flight
+export var STAKE = 'stake';         // your entry, held as lives; each death spends 250, leftover -> pot at round end
+
+export var STAKE_PER_LIFE = 250;    // one death spends this much stake (1000 entry = 4 lives)
 
 // system accounts
 export var HOUSE = 'house';
@@ -20,8 +23,8 @@ export var ENTRY_BASE = 1000;       // CDF base entry
 export var ENTRY_PER_MINUTE = 50;   // + this per full minute since the round started
 export var ENTRY_MAX = 2000;        // the entry price stops growing here (reached at minute 20)
 export var HOUSE_RAKE = 0.30;       // 30% of each entry -> house, rest -> pot
-export var ROUND_LIMIT = 1200;      // seconds (20 min); Heart unclaimed at the limit -> pot rolls over
-export var ENTRY_CLOSE = 960;       // seconds; entries lock 4 min before the limit
+export var ROUND_LIMIT = 3600;      // seconds (1 hour); Heart unclaimed at the limit -> everyone kicked, pot carries
+export var ENTRY_CLOSE = 3600;      // entries stay open for the whole session
 export var KILL_PENALTY = 250;      // victim loses up to this from Credit (never negative)
 export var FIREBALL_KILLER_SHARE = 0.70;  // of the taken amount -> killer EARNINGS, rest -> pot
 export var EATER_HOUSE_SHARE = 0.50;      // of the taken amount -> house, rest -> pot

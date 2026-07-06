@@ -9,7 +9,7 @@ import {
   TICK_DT, MAX_PLAYERS, WIN_DIST, FIELD_REFRESH, ROUND_COUNTDOWN,
   SPAWN_HEART_FRAC, SPAWN_MIN_PLAYER_DIST,
   FIREBALL_DAMAGE, EATER_DAMAGE, EATER_HIT_INTERVAL,
-  KEEPER_COUNT, EATER_ADD_INTERVAL
+  KEEPER_COUNT, EATER_ADD_INTERVAL, MAX_EATERS
 } from '../shared/config.js';
 import {
   BONUS_POT, bonusUnlocked, entryPrice, entriesOpen, ROUND_LIMIT,
@@ -44,6 +44,7 @@ export class Room {
     this.fbSeq = 0;
     this.fireballs = [];
     this.paidCount = 0;
+    this.entrants = new Set();     // accounts that staked into the CURRENT round (for the round-end forfeit)
     this.lastTick = Date.now();
     this.newRound();
     this.timer = setInterval(() => this.tick(), TICK_DT * 1000);
@@ -90,6 +91,8 @@ export class Room {
     p.spawnAt(s.x, s.z);
     this.send(p.ws, { t: MSG.SPAWN, x: s.x, z: s.z });
   }
+  syncLives(p){ p.lives = this.bank.lives(p.account); }   // lives = staked / 250
+  active(p){ return p.paid && p.lives > 0; }               // in the hunt: paid AND has lives left
 
   // Open entry: charge the current rising price and spawn immediately. Can't
   // afford -> ghost (roam, clear price-vs-balance). Entries closed (8:00-10:00
@@ -97,15 +100,28 @@ export class Room {
   enterOrSpectate(p){
     if (this.entriesOpen()){
       var res = this.bank.enterRound(p.account, this.roundId, this.price());
-      if (res.ok){ p.paid = true; p.entryPrice = res.price; this.paidCount++; this.spawnPlayer(p); this.sendWallet(p); return; }
-      p.paid = false; this.spawnPlayer(p);
+      if (res.ok){
+        p.paid = true; p.entryPrice = res.price || p.entryPrice || this.price();
+        this.paidCount++; this.entrants.add(p.account); this.syncLives(p);
+        this.spawnPlayer(p); this.sendWallet(p); return;
+      }
+      p.paid = false; this.syncLives(p); this.spawnPlayer(p);
       var w = this.bank.wallet(p.account);
       this.send(p.ws, { t: MSG.SPECTATE, reason: 'insufficient', price: this.price(), credit: w.credit });
     } else {
-      p.paid = false; this.spawnPlayer(p);
+      p.paid = false; this.syncLives(p); this.spawnPlayer(p);
       this.send(p.ws, { t: MSG.SPECTATE, reason: 'locked' });
     }
     this.sendWallet(p);
+  }
+
+  // Re-pay when out of lives: buy another life-pack at the current price.
+  buyLives(p, msg){
+    if (!p.paid || p.lives > 0 || !this.entriesOpen()) return;
+    var res = this.bank.buyLives(p.account, this.roundId, this.price(), '' + (msg && msg.nonce));
+    if (!res.ok){ this.sendWallet(p); return; }
+    this.entrants.add(p.account); this.syncLives(p);
+    this.spawnPlayer(p); this.sendWallet(p);
   }
 
   newRound(){
@@ -131,7 +147,8 @@ export class Room {
 
     this.broadcast(this.roundMsg());                 // maze first, then charge + spawn
     this.paidCount = 0;
-    for (var p of this.players.values()){ p.paid = false; p.entryPrice = 0; this.enterOrSpectate(p); }
+    this.entrants = new Set();                        // fresh session: lives don't carry
+    for (var p of this.players.values()){ p.paid = false; p.entryPrice = 0; p.lives = 0; this.enterOrSpectate(p); }
   }
 
   addPlayer(name, account, ws){
@@ -148,11 +165,9 @@ export class Room {
     var p = this.players.get(id);
     this.players.delete(id);
     if (p && p.paid) this.paidCount = Math.max(0, this.paidCount - 1);
-    // if the last paid player of a live round leaves, void it (refund everyone)
-    if (p && p.paid && this.phase === PHASE.PLAYING && !this.anyPaidConnected()){
-      this.bank.abortRound(this.roundId);
-      this.newRound();
-    }
+    // NOTE: no refund/abort on leave. Their stake stays on the account and is
+    // forfeited to the pot at round end (also keeps reconnects safe — the same
+    // account re-enters idempotently and keeps its remaining lives).
   }
   anyPaidConnected(){ for (var p of this.players.values()) if (p.paid) return true; return false; }
 
@@ -177,7 +192,7 @@ export class Room {
   // position (never a client-claimed one), so shots can't teleport. Validated:
   // must be a paid participant, off cooldown, and have a fireball in inventory.
   throwFireball(p, msg){
-    if (this.phase !== PHASE.PLAYING || !p.paid) return;
+    if (this.phase !== PHASE.PLAYING || !this.active(p)) return;   // out of lives -> can't throw
     if (p.throwCd > 0) return;                                   // cooldown
     var throwId = 'fb:' + p.account + ':' + msg.id;             // idempotent (double-send safe)
     var consumed = this.bank.consumeFireball(p.account, throwId);
@@ -209,7 +224,7 @@ export class Room {
       fb.x = nx; fb.z = nz;
       var victim = null;
       for (var pw of this.players.values()){
-        if (pw.id === fb.owner || !pw.paid || pw.invuln > 0 || pw.health <= 0) continue;   // no self/ghost/invuln/dead
+        if (pw.id === fb.owner || !this.active(pw) || pw.invuln > 0 || pw.health <= 0) continue;   // no self/ghost/out/invuln/dead
         var dx = pw.x - fb.x, dz = pw.z - fb.z;
         if (dx * dx + dz * dz < FIREBALL_HIT_R * FIREBALL_HIT_R){ victim = pw; break; }
       }
@@ -233,7 +248,7 @@ export class Room {
   // Continuous eater contact -> apply EATER_DAMAGE at most once per interval.
   hitByEater(pid){
     var p = this.players.get(pid);
-    if (!p || !p.paid || p.invuln > 0 || p.health <= 0 || p.eaterHitCd > 0) return;
+    if (!p || !this.active(p) || p.invuln > 0 || p.health <= 0 || p.eaterHitCd > 0) return;
     p.eaterHitCd = EATER_HIT_INTERVAL;
     this.damage(p, EATER_DAMAGE, 'eater');
   }
@@ -242,7 +257,7 @@ export class Room {
   // a second hit in the same tick can't re-trigger death. Health is the source
   // of truth (broadcast in snapshots); the client never decides it.
   damage(victim, amount, cause){
-    if (!victim.paid || victim.invuln > 0 || victim.health <= 0) return;
+    if (!this.active(victim) || victim.invuln > 0 || victim.health <= 0) return;
     victim.health = Math.max(0, victim.health - amount);
     if (victim.health === 0) this.die(victim, cause);
   }
@@ -254,19 +269,30 @@ export class Room {
     if (cause === 'fireball'){
       var atk = victim.lastAttacker || { account: null, name: 'Someone', id: 0 };
       var killId = this.roundId + ':f:' + (++this.killSeq);
-      this.bank.killByFireball(victim.account, atk.account, this.roundId, killId);
-      this.spawnPlayer(victim);                    // resets health + invuln (sends SPAWN)
-      this.send(victim.ws, { t: MSG.KILLED, by: 'fireball', byName: atk.name });
+      this.bank.killByFireball(victim.account, atk.account, this.roundId, killId);   // spends 250 stake -> killer/pot
+      this.broadcast({ t: MSG.KILLFEED, text: atk.name + ' burned ' + victim.name });
+      this.syncLives(victim);
+      this.respawnOrOut(victim, 'fireball', atk.name);
       this.sendWallet(victim);
       var killer = this.players.get(atk.id);
       if (killer) this.sendWallet(killer);
-      this.broadcast({ t: MSG.KILLFEED, text: atk.name + ' burned ' + victim.name });
     } else {
       var killId2 = this.roundId + ':e:' + (++this.killSeq);
-      this.bank.killByEater(victim.account, this.roundId, killId2);
-      this.spawnPlayer(victim);
-      this.send(victim.ws, { t: MSG.KILLED, by: 'eater' });
+      this.bank.killByEater(victim.account, this.roundId, killId2);                  // spends 250 stake -> house/pot
+      this.syncLives(victim);
+      this.respawnOrOut(victim, 'eater', null);
       this.sendWallet(victim);
+    }
+  }
+
+  // A death spent one life. Respawn if lives remain, else the player is OUT (a
+  // spectator who can re-pay to buy another life-pack).
+  respawnOrOut(victim, by, byName){
+    this.spawnPlayer(victim);   // fresh spawn + full health + spawn invuln (also for out-of-lives roaming)
+    if (victim.lives > 0){
+      this.send(victim.ws, { t: MSG.KILLED, by: by, byName: byName, lives: victim.lives });
+    } else {
+      this.send(victim.ws, { t: MSG.KILLED, by: by, byName: byName, lives: 0, out: true, price: this.price() });
     }
   }
 
@@ -286,6 +312,10 @@ export class Room {
     this.phase = PHASE.COUNTDOWN;
     this.countdown = ROUND_COUNTDOWN;
     this.winnerName = winner ? winner.name : null;
+
+    // every remaining stake (unused lives) forfeits into the pot before payout,
+    // for EVERY account that entered this round (incl. those who disconnected).
+    for (var acc of this.entrants) this.bank.forfeitStake(acc, this.roundId);
 
     var pot = this.potBalance(), target = 0, topup = 0, rolled = 0;
     if (winner && winner.paid){
@@ -327,7 +357,7 @@ export class Room {
     this.refreshFields(dt);
 
     // escalate the hunt: a new eater joins every EATER_ADD_INTERVAL (5 min)
-    var wantEaters = KEEPER_COUNT + Math.floor(this.t / EATER_ADD_INTERVAL);
+    var wantEaters = Math.min(MAX_EATERS, KEEPER_COUNT + Math.floor(this.t / EATER_ADD_INTERVAL));
     while (this.eaters.count < wantEaters) this.eaters.addEater();
 
     var arr = [];
@@ -335,7 +365,7 @@ export class Room {
       p.invuln = Math.max(0, p.invuln - dt);
       p.throwCd = Math.max(0, p.throwCd - dt);
       p.eaterHitCd = Math.max(0, p.eaterHitCd - dt);
-      arr.push({ id: p.id, x: p.x, z: p.z, invuln: p.invuln, speed: p.speed, paid: p.paid, flare: (p.flareUntil || 0) > this.t });
+      arr.push({ id: p.id, x: p.x, z: p.z, invuln: p.invuln, speed: p.speed, paid: this.active(p), flare: (p.flareUntil || 0) > this.t });
     }
 
     var self = this;
@@ -348,7 +378,7 @@ export class Room {
     // win: first PAID player to the treasure
     var won = false;
     for (var pw of this.players.values()){
-      if (!pw.paid) continue;
+      if (!this.active(pw)) continue;                            // out of lives -> can't claim the Heart
       var dx = this.treasureWX.x - pw.x, dz = this.treasureWX.z - pw.z;
       if (Math.sqrt(dx * dx + dz * dz) < WIN_DIST){ this.endRound(pw); won = true; break; }
     }

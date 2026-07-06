@@ -70,10 +70,30 @@ net.on('round', function(){
 });
 
 // The server caught us: it already respawned us (SPAWN sets the new position).
+var reviveArmed = 0;   // price to buy 4 more lives, when out of lives
 net.on('killed', function(m){
   if (state.phase === 'over') return;   // round already ending
+  var out = !!(m && m.out);
+  var lives = m && typeof m.lives === 'number' ? m.lives : 0;
   document.getElementById('deathTitle').textContent =
     (m && m.by === 'fireball') ? (m.byName || 'Someone') + ' burned you' : 'A Darkness Eater found you';
+  var dl = document.getElementById('deathLives');
+  var rb = document.getElementById('respawnBtn');
+  var rv = document.getElementById('reviveBtn');
+  document.getElementById('reviveMsg').textContent = '';
+  reviveArmed = out ? (m.price || 1000) : 0;
+  if (out){
+    dl.textContent = "You're out of lives";
+    rb.textContent = 'Spectate';                 // roam as a ghost for the rest of the round
+    rb.classList.remove('hide');
+    rv.textContent = 'Pay ' + (m.price || 1000) + ' for 4 more lives';
+    rv.classList.remove('hide');
+  } else {
+    dl.textContent = lives + (lives === 1 ? ' life left' : ' lives left');
+    rb.textContent = 'Rise again';
+    rb.classList.remove('hide');
+    rv.classList.add('hide');
+  }
   state.phase = 'dead';
   Sfx.sting();
   flashEl.style.opacity = 0.75;
@@ -82,6 +102,18 @@ net.on('killed', function(m){
   setTimeout(function(){ ovDeath.classList.remove('hide'); }, 550);
 });
 document.getElementById('respawnBtn').addEventListener('click', function(){
+  ovDeath.classList.add('hide');
+  state.phase = 'playing';
+  lockPointer();
+});
+document.getElementById('reviveBtn').addEventListener('click', function(){
+  var price = reviveArmed || 1000;
+  var credit = (net.wallet && net.wallet.credit) || 0;
+  if (credit < price){
+    document.getElementById('reviveMsg').textContent = 'Not enough credit — add funds in your wallet';
+    return;
+  }
+  net.revive();                       // server buys another life-pack + respawns us
   ovDeath.classList.add('hide');
   state.phase = 'playing';
   lockPointer();

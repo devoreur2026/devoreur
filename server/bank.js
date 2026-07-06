@@ -1,9 +1,9 @@
 // Domain money operations, each atomic + idempotent, built on the ledger and
 // the shared economy rules. This is the ONLY place gameplay touches money.
 import {
-  CREDIT, EARNINGS, HOLD, HOUSE, MINT, GATEWAY, POT,
+  CREDIT, EARNINGS, HOLD, STAKE, HOUSE, MINT, GATEWAY, POT, STAKE_PER_LIFE,
   FIREBALL_PACK, FIREBALL_PACK_PRICE,
-  splitEntry, killTaken, splitFireballKill, splitEaterKill, winnerPayout
+  splitFireballKill, splitEaterKill, winnerPayout
 } from '../shared/economy.js';
 import { Ledger } from './ledger.js';
 
@@ -15,6 +15,8 @@ export class Bank {
   history(account, limit){ return this.ledger.history(account, limit); }
   potBalance(roundId){ return this.ledger.balance(POT(roundId), CREDIT); }
   houseBalance(){ return this.ledger.balance(HOUSE, CREDIT); }
+  stakeBalance(account){ return this.ledger.balance(account, STAKE); }
+  lives(account){ return Math.floor(this.stakeBalance(account) / STAKE_PER_LIFE); }
   auditRound(roundId){ return this.ledger.auditRound(roundId); }
   // net coin change for an account within a round (for the summary screen)
   roundNet(account, roundId){
@@ -36,21 +38,47 @@ export class Bank {
     return { ok: true, wallet: this.wallet(account) };
   }
 
-  // charge the (rising) entry price: 30% house rake, 70% to the round pot.
-  // Idempotent per (round, account) — a player pays once per round.
+  // Entry: the price is HELD as stake (lives), not split. Each death spends 250
+  // of it; leftover forfeits to the pot at round end. Idempotent per (round,
+  // account) so reconnecting to the same round doesn't re-charge. lives = price/250.
   enterRound(account, roundId, price){
     price = price | 0;
     var idem = 'entry:' + roundId + ':' + account;
-    if (this.ledger.has(idem)) return { ok: true, idempotent: true, pot: this.potBalance(roundId) };
+    if (this.ledger.has(idem)) return { ok: true, idempotent: true, stake: this.stakeBalance(account) };
     if (price <= 0) return { ok: false, reason: 'invalid' };
     if (this.wallet(account).credit < price) return { ok: false, reason: 'insufficient', price: price };
-    var s = splitEntry(price);
     this.ledger.post(idem, [
       { account: account, bucket: CREDIT, amount: -price, type: 'entry' },
-      { account: HOUSE, bucket: CREDIT, amount: s.house, type: 'rake' },
-      { account: POT(roundId), bucket: CREDIT, amount: s.pot, type: 'entry_pot' }
+      { account: account, bucket: STAKE, amount: price, type: 'entry_stake' }
+    ], this._meta({ round: roundId, counterparty: account }));
+    return { ok: true, price: price, stake: this.stakeBalance(account) };
+  }
+
+  // Buy another life-pack when out of lives (a fresh, non-idempotent purchase).
+  buyLives(account, roundId, price, nonce){
+    price = price | 0;
+    var idem = 'buylives:' + roundId + ':' + account + ':' + nonce;
+    if (this.ledger.has(idem)) return { ok: true, idempotent: true, stake: this.stakeBalance(account) };
+    if (price <= 0) return { ok: false, reason: 'invalid' };
+    if (this.wallet(account).credit < price) return { ok: false, reason: 'insufficient', price: price };
+    this.ledger.post(idem, [
+      { account: account, bucket: CREDIT, amount: -price, type: 'buylives' },
+      { account: account, bucket: STAKE, amount: price, type: 'buylives_stake' }
+    ], this._meta({ round: roundId, counterparty: account }));
+    return { ok: true, price: price, stake: this.stakeBalance(account) };
+  }
+
+  // Forfeit an account's remaining stake into the pot at round end. Idempotent.
+  forfeitStake(account, roundId){
+    var idem = 'forfeit:' + roundId + ':' + account;
+    if (this.ledger.has(idem)) return { ok: true, idempotent: true };
+    var s = this.stakeBalance(account);
+    if (s <= 0) return { ok: true, empty: true };
+    this.ledger.post(idem, [
+      { account: account, bucket: STAKE, amount: -s, type: 'forfeit' },
+      { account: POT(roundId), bucket: CREDIT, amount: s, type: 'forfeit_pot' }
     ], this._meta({ round: roundId, counterparty: POT(roundId) }));
-    return { ok: true, price: price, pot: this.potBalance(roundId) };
+    return { ok: true, forfeited: s };
   }
 
   // Roll an unclaimed pot into the next round (no house cut). Both legs are
@@ -88,30 +116,31 @@ export class Bank {
     return { ok: true, reversed: deltas.length };
   }
 
-  // victim loses up to KILL_PENALTY from Credit; killer's EARNINGS + pot split
+  // death by a fireball spends one life (250) of the victim's STAKE: 70% -> killer
+  // EARNINGS, 30% -> pot. (A living victim always has >= 250 staked.)
   killByFireball(victim, killer, roundId, killId){
     var idem = 'kill:' + killId;
     if (this.ledger.has(idem)) return { ok: true, idempotent: true, taken: 0 };
-    var taken = killTaken(this.wallet(victim).credit);
+    var taken = Math.min(STAKE_PER_LIFE, this.stakeBalance(victim));
     if (taken === 0){ this.ledger.post(idem, [], this._meta({ round: roundId, counterparty: killer })); return { ok: true, taken: 0 }; }
     var s = splitFireballKill(taken);
     this.ledger.post(idem, [
-      { account: victim, bucket: CREDIT, amount: -taken, type: 'kill_pvp' },
+      { account: victim, bucket: STAKE, amount: -taken, type: 'kill_pvp' },
       { account: killer, bucket: EARNINGS, amount: s.killer, type: 'kill_reward' },
       { account: POT(roundId), bucket: CREDIT, amount: s.pot, type: 'kill_pot' }
     ], this._meta({ round: roundId, counterparty: killer }));
     return { ok: true, taken: taken, toKiller: s.killer, toPot: s.pot };
   }
 
-  // eater kill: 50% house, 50% pot
+  // death by an eater spends one life (250) of the STAKE: 50% house, 50% pot
   killByEater(victim, roundId, killId){
     var idem = 'kill:' + killId;
     if (this.ledger.has(idem)) return { ok: true, idempotent: true, taken: 0 };
-    var taken = killTaken(this.wallet(victim).credit);
+    var taken = Math.min(STAKE_PER_LIFE, this.stakeBalance(victim));
     if (taken === 0){ this.ledger.post(idem, [], this._meta({ round: roundId, counterparty: HOUSE })); return { ok: true, taken: 0 }; }
     var s = splitEaterKill(taken);
     this.ledger.post(idem, [
-      { account: victim, bucket: CREDIT, amount: -taken, type: 'kill_eater' },
+      { account: victim, bucket: STAKE, amount: -taken, type: 'kill_eater' },
       { account: HOUSE, bucket: CREDIT, amount: s.house, type: 'kill_house' },
       { account: POT(roundId), bucket: CREDIT, amount: s.pot, type: 'kill_pot' }
     ], this._meta({ round: roundId, counterparty: HOUSE }));

@@ -76,9 +76,10 @@ console.log('— fireball hit damages (not instant kill); 3rd hit kills; economy
   eq(B.health, MAX_HEALTH, 'respawn restores full health');
   var killed = wb.last('killed');
   ok(killed && killed.by === 'fireball' && killed.byName === 'ALICE', 'victim told ALICE burned them');
-  eq(bank.wallet('B').credit, 3750, 'victim -250 Credit ONCE (killing blow only)');
+  eq(bank.wallet('B').credit, 4000, 'Credit untouched — the stake pays');
+  eq(bank.stakeBalance('B'), 750, 'victim -250 stake ONCE (killing blow only)');
   eq(bank.wallet('A').earnings, 175, 'killer +70% (175) once');
-  eq(room.potBalance(), 1400 + 75, 'pot +30% (75) once');
+  eq(room.potBalance(), 75, 'pot +30% (75) once');
   ok(wa.last('killfeed').text === 'ALICE burned BOB', 'kill feed on death');
   eq(bank.auditRound(room.roundId), 0, 'round audit still nets to zero');
 }
@@ -91,14 +92,14 @@ console.log('— two fireballs in the SAME tick kill once (no double 250 / doubl
   var A = room.addPlayer('ALICE', 'A', mkws());
   var B = room.addPlayer('BOB', 'B', mkws());
   B.invuln = 0; B.health = FIREBALL_DAMAGE;         // one hit from death
-  var creditBefore = bank.wallet('B').credit;
+  var stakeBefore = bank.stakeBalance('B');
   var earnBefore = bank.wallet('A').earnings;
   var potBefore = room.potBalance();
   var fb = { owner: A.id, ownerAccount: 'A', ownerName: 'ALICE' };
   room.hitByFireball(fb, B);                        // kills
   room.hitByFireball(fb, B);                        // same tick, B now respawned+invulnerable -> no-op
   eq(B.deaths, 1, 'died exactly once');
-  eq(bank.wallet('B').credit, creditBefore - 250, 'penalty charged once (not 500)');
+  eq(bank.stakeBalance('B'), stakeBefore - 250, 'one life (250 stake) spent, not two');
   eq(bank.wallet('A').earnings, earnBefore + 175, 'killer credited once (not 350)');
   eq(room.potBalance(), potBefore + 75, 'pot grew once (not 150)');
   eq(bank.auditRound(room.roundId), 0, 'audit still nets to zero');

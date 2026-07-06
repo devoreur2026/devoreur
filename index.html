@@ -53,6 +53,10 @@
     transition:width .12s linear}
   #healthLbl{position:absolute;left:50%;bottom:78px;transform:translateX(-50%);
     font-size:9px;letter-spacing:.24em;color:var(--dim)}
+  #livesLbl{position:absolute;left:50%;bottom:92px;transform:translateX(-50%);
+    font-size:11px;letter-spacing:.24em;color:var(--dim);white-space:nowrap;transition:opacity .2s}
+  #livesLbl b{color:var(--gold);letter-spacing:.12em;font-weight:400}
+  #deathLives{font-size:13px;letter-spacing:.2em;color:var(--gold);margin:2px 0 14px}
   #hint{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);
     font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--dim);
     white-space:nowrap;transition:opacity 1.6s}
@@ -203,6 +207,7 @@
     #stamWrap{bottom:46px}
     #healthWrap{bottom:55px;height:7px}
     #healthLbl{bottom:66px;font-size:8px}
+    #livesLbl{bottom:78px;font-size:9px}
     #mapCanvas{left:10px;bottom:10px}
     #spectateBanner{top:15%;font-size:11px;line-height:1.5;padding:10px 16px;max-width:90vw}
     #spectateBanner b{font-size:13px;letter-spacing:.2em;margin-bottom:6px}
@@ -220,6 +225,7 @@
   <div id="potBar">POT <b id="potVal">0</b> · <span id="entryVal"></span> · <span id="bonusVal"></span></div>
   <div id="killfeed"></div>
   <div id="cross"></div>
+  <div id="livesLbl">LIVES <b id="lives"></b></div>
   <div id="healthLbl">HEALTH</div>
   <div id="healthWrap"><div id="health"></div></div>
   <div id="stamWrap"><div id="stam"></div></div>
@@ -303,7 +309,10 @@
 <div class="overlay hide" id="ovDeath">
   <div class="eyebrow" style="color:#e8574a">It was already behind you</div>
   <h2 id="deathTitle">A Darkness Eater found you</h2>
+  <div id="deathLives">3 lives left</div>
   <button class="btn" id="respawnBtn" style="border-color:rgba(232,87,74,.5);color:#e8574a">Rise again</button>
+  <button class="btn hide" id="reviveBtn" style="border-color:rgba(255,206,107,.6);color:var(--gold)">Pay for 4 more lives</button>
+  <div id="reviveMsg" style="margin-top:10px;font-size:11px;letter-spacing:.14em;color:var(--dim);min-height:14px"></div>
 </div>
 
 <div class="overlay hide" id="ovWin">

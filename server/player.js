@@ -31,6 +31,7 @@ export class ServerPlayer {
     this.x = 0; this.z = 0; this.yaw = 0;
     this.deaths = 0;
     this.health = MAX_HEALTH;          // server-authoritative; full here + reset on every spawn
+    this.lives = 0;                    // lives left this round (staked/250); 0 = out until re-pay
     this.lastAttacker = null;          // { account, name, id } of the last fireball hitter (kill credit)
     this.eaterHitCd = 0;               // spacing between continuous eater-contact hits
     this.invuln = RESPAWN_INVULN;
@@ -91,7 +92,8 @@ export class ServerPlayer {
       x: +this.x.toFixed(3), z: +this.z.toFixed(3), yaw: +this.yaw.toFixed(3),
       deaths: this.deaths, invuln: this.invuln > 0 ? 1 : 0,
       hp: this.health,                                    // server-authoritative health
-      spec: this.paid ? 0 : 1,                            // spectator this round?
+      lives: this.lives,                                  // lives left this round
+      spec: (this.paid && this.lives > 0) ? 0 : 1,        // spectator (unpaid OR out of lives)?
       ack: this.lastSeq                                   // last input the client can prune/replay from
     };
   }

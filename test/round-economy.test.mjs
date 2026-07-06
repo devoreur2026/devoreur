@@ -26,25 +26,30 @@ console.log('— open entry: funded players enter on join; pot / eater-kill / pa
   var B = room.addPlayer('BOB', 'B', wb);
   ok(A.paid && B.paid, 'both enter immediately on join (open entry)');
   eq(room.paidCount, 2, 'paidCount = 2');
-  eq(room.potBalance(), 1400, 'pot = 2 * 700');
+  eq(room.potBalance(), 0, 'pot starts empty — entries are staked, not pooled');
+  eq(bank.stakeBalance('A'), 1000, "A's 1000 is held as stake (4 lives)");
+  eq(A.lives, 4, 'A shows 4 lives');
   eq(bank.wallet('A').credit, 4000, 'A charged the base price (1000)');
   ok(wa.last('spawn') && typeof wa.last('spawn').x === 'number', 'server sent A a spawn point');
 
   B.invuln = 0;
-  room.hitByEater(B.id);                            // hit 1: half damage, no death/penalty
+  room.hitByEater(B.id);                            // hit 1: half damage, no death/life lost
   eq(B.health, MAX_HEALTH - EATER_DAMAGE, 'eater contact takes half health');
-  eq(bank.wallet('B').credit, 4000, 'no penalty on a non-lethal eater hit');
+  eq(B.lives, 4, 'no life lost on a non-lethal eater hit');
   B.eaterHitCd = 0;                                 // (in-game the contact cooldown spaces these)
-  room.hitByEater(B.id);                            // hit 2: killing blow
-  eq(bank.wallet('B').credit, 3750, 'eater kill takes 250 ONCE (on the killing blow)');
-  eq(room.potBalance(), 1525, 'pot += 125 (eater 50/50)');
+  room.hitByEater(B.id);                            // hit 2: killing blow -> spends a life
+  eq(bank.wallet('B').credit, 4000, 'Credit untouched — the stake pays for the death');
+  eq(bank.stakeBalance('B'), 750, 'eater death spends 250 stake ONCE');
+  eq(B.lives, 3, 'B down to 3 lives');
+  eq(room.potBalance(), 125, 'pot += 125 (eater 50/50)');
   ok(wb.last('spawn'), 'respawn sends a fresh spawn point');
   eq(B.health, MAX_HEALTH, 'respawn restores full health');
 
-  room.endRound(A);
-  eq(bank.wallet('A').earnings, BONUS_POT, 'winner gets the guaranteed bonus (pot 1525 < 15000)');
+  room.endRound(A);                                 // A wins: forfeit A(1000) + B(750) -> pot, then payout
+  eq(bank.wallet('A').earnings, BONUS_POT, 'winner gets the guaranteed bonus (pot < 15000)');
   var ro = wa.last('roundOver');
-  eq(ro.pot, 1525, 'summary pot'); eq(ro.target, BONUS_POT, 'payout is the bonus floor'); eq(ro.rolled, 0, 'nothing rolls over on a win');
+  eq(ro.pot, 125 + 1000 + 750, 'summary pot = eater share + forfeited stakes (1875)');
+  eq(ro.target, BONUS_POT, 'payout is the bonus floor'); eq(ro.rolled, 0, 'nothing rolls over on a win');
   ok(ro.players.every(function(p){ return typeof p.entry === 'number'; }), 'summary lists each entry price');
   eq(bank.auditRound(room.roundId), 0, 'round audit nets to zero');
 }
@@ -103,10 +108,10 @@ console.log('— guaranteed bonus top-up (always on, any player count)');
   ids.forEach(function(a){ players[a] = room.addPlayer(a, a, ws[a]); });
   eq(room.paidCount, 3, 'three paid players');
   var houseBefore = bank.houseBalance();
-  room.endRound(players['A']);
+  room.endRound(players['A']);                       // forfeit 3 * 1000 stakes -> pot 3000, then payout
   eq(bank.wallet('A').earnings, BONUS_POT, 'winner guaranteed 15000 with only 3 players');
   var ro = ws['A'].last('roundOver');
-  eq(ro.topup, BONUS_POT - 2100, 'house tops up the gap (12900)'); ok(ro.bonus, 'bonus always flagged');
+  eq(ro.topup, BONUS_POT - 3000, 'house tops up the gap over the 3 forfeited stakes'); ok(ro.bonus, 'bonus always flagged');
   eq(bank.houseBalance(), houseBefore - ro.topup, 'house paid the top-up');
   eq(bank.auditRound(room.roundId), 0, 'audit zero');
 }
@@ -119,14 +124,13 @@ console.log('— time-limit rollover: pot carries into the next round, audits st
   room.addPlayer('A', 'A', mkws());
   room.addPlayer('B', 'B', mkws());
   var r1 = room.roundId;
-  eq(room.potBalance(), 1400, 'r1 pot 1400');
+  eq(room.potBalance(), 0, 'r1 pot empty until the round-end forfeit');
 
-  room.endRound(null);                              // 10:00 hit, no winner
-  var ro = room.players.get(1) ? null : null;       // (ROUND_OVER already broadcast)
+  room.endRound(null);                              // time limit hit, no winner -> forfeit stakes to pot
   room.newRound();                                  // rolls r1 pot into r2 + re-charges present players
   var r2 = room.roundId;
-  eq(room.rolledIn, 1400, 'entire r1 pot rolled into r2');
-  eq(room.potBalance(), 1400 + 1400, 'r2 pot = rollover + re-entries');
+  eq(room.rolledIn, 2000, 'entire r1 pot (2 forfeited stakes) rolled into r2');
+  eq(room.potBalance(), 2000, 'r2 pot = rolled-over pot (re-entries are staked, not pooled)');
   eq(bank.auditRound(r1), 0, 'expired round r1 audits to zero');
   eq(bank.auditRound(r2), 0, 'r2 (rollover + entries) audits to zero');
   ok(bank.ledger.verifyIntegrity(), 'ledger integrity holds through rollover');
@@ -147,20 +151,24 @@ console.log('— randomized spawns: far from the Heart and from other players');
   ok(aHeart >= minHeart && bHeart >= minHeart, 'both spawn a safe BFS distance from the Heart');
 }
 
-console.log('— refund on abort (last paid player leaves)');
+console.log('— leaving does not refund; stakes forfeit to the pot at round end');
 {
   var bank = new Bank();
   var room = new Room('t2', bank); clearInterval(room.timer);
   bank.grant('A', 5000, 'gA'); bank.grant('B', 5000, 'gB');
   var A = room.addPlayer('A', 'A', mkws());
   var B = room.addPlayer('B', 'B', mkws());
-  var abortedRound = room.roundId;
+  var round = room.roundId;
   room.removePlayer(A.id);
-  eq(bank.wallet('A').credit, 4000, 'no refund while a paid player remains');
+  eq(bank.wallet('A').credit, 4000, 'no refund on leaving');
+  eq(bank.stakeBalance('A'), 1000, "A's stake stays for the round-end forfeit");
   room.removePlayer(B.id);
-  eq(bank.wallet('A').credit, 5000, 'A fully refunded on abort');
-  eq(bank.wallet('B').credit, 5000, 'B fully refunded on abort');
-  eq(bank.auditRound(abortedRound), 0, 'aborted round nets to zero');
+  eq(bank.wallet('B').credit, 4000, 'B not refunded either');
+  room.endRound(null);                              // session ends -> both entrants forfeit
+  eq(bank.stakeBalance('A'), 0, 'A stake forfeited');
+  eq(bank.stakeBalance('B'), 0, 'B stake forfeited');
+  eq(bank.potBalance(round), 2000, 'both stakes went into the pot');
+  eq(bank.auditRound(round), 0, 'round nets to zero');
 }
 
 console.log('\n' + (failed === 0 ? '=== PASS ===' : '=== FAIL ===') + '  ' + passed + ' checks passed, ' + failed + ' failed');

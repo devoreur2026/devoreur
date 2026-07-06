@@ -22,7 +22,7 @@ console.log('— charged on join; NOT re-charged rejoining the same round; charg
   eq(bank.wallet('B').credit, 9000, 'B charged on join');
   var round1 = room.roundId;
 
-  // A leaves while B remains (no abort) -> forfeits, no refund
+  // A leaves while B remains -> no refund; A's stake stays for the round-end forfeit
   room.removePlayer(pa.id);
   eq(bank.wallet('A').credit, 9000, 'A not refunded (round continues with B)');
 
@@ -54,15 +54,19 @@ console.log('— reconnect (displacement-style): remove old + re-add same accoun
   ok(paNew.paid && room.paidCount === 2, 'A + B are the two paid players (no double count)');
 }
 
-console.log('— solo quit voids the round and refunds the entry');
+console.log('— quitting does NOT refund; the stake forfeits to the pot at round end');
 {
   var bank = new Bank();
   bank.grant('A', 10000, 'gA');
   var room = new Room('t3', bank); clearInterval(room.timer);
   var pa = room.addPlayer('A', 'A', mkws());
   eq(bank.wallet('A').credit, 9000, 'charged');
-  room.removePlayer(pa.id);                          // last paid leaves -> abort + refund
-  eq(bank.wallet('A').credit, 10000, 'solo quit fully refunds the entry (round voided)');
+  eq(bank.stakeBalance('A'), 1000, 'staked 1000 (4 lives)');
+  room.removePlayer(pa.id);                          // quit -> no refund, stake stays on the account
+  eq(bank.wallet('A').credit, 9000, 'quitting does NOT refund the entry');
+  eq(bank.stakeBalance('A'), 1000, 'stake still held until round end');
+  room.endRound(null);                               // session ends -> A (still an entrant) forfeits to the pot
+  eq(bank.stakeBalance('A'), 0, 'leftover stake forfeited to the pot at round end');
   ok(bank.ledger.verifyIntegrity(), 'ledger integrity');
 }
 

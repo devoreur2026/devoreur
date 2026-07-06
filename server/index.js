@@ -155,6 +155,10 @@ wss.on('connection', (ws) => {
       room.throwFireball(player, msg);               // validated server-side (fireball commit)
       return;
     }
+    if (msg.t === MSG.REVIVE){
+      room.buyLives(player, msg);                    // out of lives -> buy another life-pack
+      return;
+    }
   });
 
   ws.on('close', () => {

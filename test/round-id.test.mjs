@@ -15,17 +15,16 @@ console.log('— round ids differ across a "restart"; the reused round still fun
   bank.grant('P', 1000000, 'gP');            // persists in the shared ledger
 
   var a = new Room('room-1', bank); clearInterval(a.timer);
-  a.addPlayer('P', 'P', mkws());             // enters a's round, pot funded
-  eq(a.potBalance(), 700, 'round A pot funded (1000 entry -> 700 pot)');
+  a.addPlayer('P', 'P', mkws());             // enters a's round -> charged (staked)
+  eq(bank.stakeBalance('P'), 1000, 'round A entry charged (staked 1000)');
   var idA = a.roundId;
 
   // simulate a restart: a NEW room, same name, SAME bank (the ledger survived).
   var b = new Room('room-1', bank); clearInterval(b.timer);
   ok(b.roundId !== idA, 'round id differs across restart (no collision): ' + idA + ' vs ' + b.roundId);
 
-  a.addPlayer('P', 'P', mkws());             // (P is elsewhere now, but same account) — enters b's round
-  b.addPlayer('P', 'P', mkws());
-  eq(b.potBalance(), 700, 'round B pot funded — the entry was NOT idempotent-skipped as a duplicate');
+  b.addPlayer('P', 'P', mkws());             // different round id -> NOT idempotent -> charges again
+  eq(bank.stakeBalance('P'), 2000, 'round B entry also charged — NOT idempotent-skipped as a duplicate');
   ok(b.potBalance() >= 0, 'pot is never negative');
   ok(bank.ledger.verifyIntegrity(), 'ledger integrity holds');
 }

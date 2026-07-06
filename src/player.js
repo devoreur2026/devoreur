@@ -22,6 +22,8 @@ var lastThrow = -999, fbFlare = null;
 // throw a fireball in the look direction (server validates inventory/cooldown)
 export function throwFireball(){
   if (state.phase !== 'playing' || state.uiBusy || net.spectating) return;
+  var me = net.self();
+  if (me && me.spec){ Sfx.blip(); return; }              // out of lives / spectator -> can't throw
   if (net.wallet.fireballs <= 0){ Sfx.blip(); return; }
   var now = (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000;
   if (now - lastThrow < FIREBALL_COOLDOWN) return;      // client-side rate limit (server also enforces)

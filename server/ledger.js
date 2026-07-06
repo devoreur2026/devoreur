@@ -45,12 +45,19 @@ export class Ledger {
     }
     if (sum !== 0) throw new Error('ledger: unbalanced transaction ' + txId + ' (sum ' + sum + ')');
 
-    // validate floors BEFORE mutating (all-or-nothing)
+    // validate floors on the NET effect per account|bucket BEFORE mutating
+    // (all-or-nothing). Checking each delta against the live balance would wrongly
+    // reject a transaction that nets to >= 0 but passes through a transient
+    // negative (e.g. an abort that reverses an entry then re-credits a kill).
+    var net = new Map();   // "account|bucket" -> { account, amount }
     for (i = 0; i < deltas.length; i++){
-      var d = deltas[i];
-      var after = this.balance(d.account, d.bucket) + d.amount;
-      if (after < 0 && !mayGoNegative(d.account))
-        throw new Error('ledger: ' + d.account + '/' + d.bucket + ' would go negative (' + after + ') in ' + txId);
+      var d = deltas[i], nk = this.key(d.account, d.bucket), ne = net.get(nk);
+      if (ne) ne.amount += d.amount; else net.set(nk, { account: d.account, amount: d.amount });
+    }
+    for (var [fk, fe] of net){
+      var after = (this.bal.get(fk) || 0) + fe.amount;
+      if (after < 0 && !mayGoNegative(fe.account))
+        throw new Error('ledger: ' + fk + ' would go negative (' + after + ') in ' + txId);
     }
     invDeltas = invDeltas || [];
     for (i = 0; i < invDeltas.length; i++){

@@ -158,6 +158,7 @@ export var net = {
   throwFireball: function(yaw){ this.send({ t: MSG.THROW, id: this.nonce(), yaw: yaw }); },
   buyFireballs: function(){ this.send({ t: MSG.SHOP, packs: 1, nonce: this.nonce() }); },
   transfer: function(amount){ this.send({ t: MSG.TRANSFER, amount: amount, nonce: this.nonce() }); },
+  revive: function(){ this.send({ t: MSG.REVIVE, nonce: this.nonce() }); },   // out of lives -> buy another pack
   requestHistory: function(){ this.send({ t: MSG.HISTORY }); },
   // leave the game: close the socket (server removes us); the close handler
   // returns us to the home screen.

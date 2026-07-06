@@ -13,6 +13,8 @@ var dangerEl = document.getElementById('danger');
 var shieldEl = document.getElementById('shield');
 var stamEl = document.getElementById('stam');
 var healthEl = document.getElementById('health');
+var livesLblEl = document.getElementById('livesLbl');
+var livesEl = document.getElementById('lives');
 var timerEl = document.getElementById('timer');
 var botListEl = document.getElementById('botList');
 var deathsEl = document.getElementById('deaths');
@@ -38,6 +40,14 @@ export function updateHud(dt){
   // health is server-authoritative — read it straight from the snapshot
   var hp = me && typeof me.hp === 'number' ? me.hp : MAX_HEALTH;
   healthEl.style.width = Math.max(0, Math.min(1, hp / MAX_HEALTH)) * 100 + '%';
+  // lives = staked/250; shown only while actively in the hunt
+  var lv = me && me.spec === 0 ? (me.lives || 0) : 0;
+  if (playing && lv > 0){
+    livesLblEl.style.opacity = 1;
+    livesEl.textContent = '◆'.repeat(Math.min(lv, 10)) + (lv > 10 ? ' ' + lv : '');
+  } else {
+    livesLblEl.style.opacity = 0;
+  }
   dangerEl.style.opacity = playing ? Math.max(0, Math.min(0.85, 1 - nearest / 12)) : 0;
   shieldEl.style.opacity = (me && me.invuln) ? 0.5 : 0;
 

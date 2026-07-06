@@ -9,6 +9,7 @@ export var MSG = {
   GRANT:    'grant',     // { nonce }          dev-only: add test Credit (UMBRA_DEV)
   HISTORY:  'history',   // { }                request ledger history
   THROW:    'throw',     // { id, x, z, yaw }  throw a fireball (server validates + simulates)
+  REVIVE:   'revive',    // { nonce }          out of lives -> buy another life-pack at the current price
 
   // server -> client
   AUTH_ERROR: 'authError', // { message }  join rejected (missing/invalid/expired token)
@@ -16,7 +17,7 @@ export var MSG = {
   ROUND:      'round',     // { seed, grid(base64), treasure:{x,z} }  (new maze)
   SPAWN:      'spawn',     // { x, z }  your randomized spawn point (join / round / respawn)
   STATE:      'state',     // { time, players, eaters, econ, round }
-  KILLED:     'killed',    // { by, byName }  -> caught; respawned at a new random spot
+  KILLED:     'killed',    // { by, byName, lives, out, price }  caught: respawn if lives left, else out
   ROUND_OVER: 'roundOver', // { winnerId, winnerName, pot, target, topup, rolled, paid, bonus, players:[{id,name,net,entry}] }
   WALLET:     'wallet',    // { credit, earnings, fireballs }  (private, on change)
   SPECTATE:   'spectate',  // { reason }  you're not in this paid round

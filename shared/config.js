@@ -7,6 +7,7 @@ export var EYE = 1.7, PLAYER_R = 0.6;
 export var WALK = 5.4, SPRINT = 8.6;
 export var KEEPER_COUNT = 4;
 export var EATER_ADD_INTERVAL = 300;   // seconds: a new eater joins the hunt every 5 min
+export var MAX_EATERS = 12;            // ...but cap the swarm so a 1-hour round stays winnable
 export var KILL_D = 1.35, SIGHT_D = 16, HEAR_D = 4.5;
 export var EATER_PATROL = 3.1, EATER_CHASE = 6.6;
 

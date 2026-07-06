@@ -49,15 +49,15 @@ console.log('— the same happens on a time-limit expiry (no winner); pot still 
   bank.grant('A', 5000, 'gA');
   var A = room.addPlayer('A', 'A', mkws());
   var r1 = room.roundId;
-  eq(room.potBalance(), 700, 'pot from the single entry');
+  eq(room.potBalance(), 0, 'pot empty until the round-end forfeit (entry is staked)');
 
-  room.endRound(null);                                // Heart unclaimed at the limit
+  room.endRound(null);                                // Heart unclaimed at the limit -> forfeit stake to pot
   room.countdown = 0.05; room.lastTick = Date.now() - 1000;
   room.tick();                                        // kickAll + newRound (rolls the pot over)
 
   eq(room.players.size, 0, 'everyone kicked on expiry too');
-  eq(room.rolledIn, 700, 'the unclaimed pot rolled into the fresh round');
-  eq(room.potBalance(), 700, 'fresh round starts with the rolled-over pot');
+  eq(room.rolledIn, 1000, 'the unclaimed pot (forfeited stake) rolled into the fresh round');
+  eq(room.potBalance(), 1000, 'fresh round starts with the rolled-over pot');
   eq(bank.auditRound(r1), 0, 'the expired round still audits to zero');
 }
 
