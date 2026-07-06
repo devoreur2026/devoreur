@@ -5,10 +5,15 @@
 // on boot. Server-only: it uses the SERVICE ROLE key, and RLS denies clients any
 // access to the ledger tables (the server serves wallet/history to clients).
 //
-// Requires env: SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY. If the key is absent
-// the game runs in-memory only (fine for local dev / LEDGER MODE testing).
+// Requires env: SUPABASE_URL + SUPABASE_SECRET_KEY. If the key is absent the game
+// runs in-memory only (fine for local dev / LEDGER MODE testing).
 var URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
-var KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+// NEW server secret key; falls back to the legacy service_role key with a warning.
+var KEY = process.env.SUPABASE_SECRET_KEY || '';
+if (!KEY && process.env.SUPABASE_SERVICE_ROLE_KEY){
+  KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  console.warn('[ledger] using LEGACY SUPABASE_SERVICE_ROLE_KEY — set SUPABASE_SECRET_KEY and disable the legacy key.');
+}
 
 export function ledgerPersistenceConfigured(){ return !!(URL && KEY); }
 

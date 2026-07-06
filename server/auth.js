@@ -7,10 +7,18 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
 var SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
-var SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
+// NEW publishable key (browser-safe). Falls back to the legacy anon key so the
+// cutover can't break auth mid-migration; warn loudly while legacy is in use.
+var SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || '';
+if (!SUPABASE_PUBLISHABLE_KEY && process.env.SUPABASE_ANON_KEY){
+  SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_ANON_KEY;
+  console.warn('[auth] using LEGACY SUPABASE_ANON_KEY — set SUPABASE_PUBLISHABLE_KEY and disable the legacy key.');
+}
 
-export function authConfigured(){ return !!(SUPABASE_URL && SUPABASE_ANON_KEY); }
-export function authConfig(){ return { url: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY }; }
+export function authConfigured(){ return !!(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY); }
+// `anonKey` is the wire field the browser Supabase client reads; a publishable
+// key is a drop-in replacement for the anon key there.
+export function authConfig(){ return { url: SUPABASE_URL, anonKey: SUPABASE_PUBLISHABLE_KEY }; }
 
 var _jwks = null;
 function jwks(){
@@ -49,7 +57,7 @@ async function verifyViaApi(token){
   var res;
   try {
     res = await fetch(SUPABASE_URL + '/auth/v1/user', {
-      headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + token }
+      headers: { apikey: SUPABASE_PUBLISHABLE_KEY, Authorization: 'Bearer ' + token }
     });
   } catch (e) {
     throw new AuthError('Could not reach the auth server. Try again.');

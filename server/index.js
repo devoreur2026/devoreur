@@ -21,8 +21,8 @@ var DEV = process.env.UMBRA_DEV === '1';    // dev-only test-Credit grant
 
 if (!authConfigured()){
   console.error('\n[!] Supabase auth is NOT configured — nobody can play until you set env vars:');
-  console.error('    SUPABASE_URL       = https://<project-ref>.supabase.co');
-  console.error('    SUPABASE_ANON_KEY  = <your publishable/anon key>');
+  console.error('    SUPABASE_URL              = https://<project-ref>.supabase.co');
+  console.error('    SUPABASE_PUBLISHABLE_KEY  = <your publishable key (sb_publishable_...)>');
   console.error('    (locally: put them in .env  —  on Render: add them as environment variables)\n');
 }
 
@@ -151,7 +151,7 @@ if (ledgerPersistenceConfigured()){
   initLedgerStore(bank.ledger)
     .catch((e) => console.error('[ledger] Supabase persistence FAILED to init — running in-memory only:', e && e.message));
 } else {
-  console.log('[ledger] in-memory only (set SUPABASE_SERVICE_ROLE_KEY to persist the ledger in Supabase).');
+  console.log('[ledger] in-memory only (set SUPABASE_SECRET_KEY to persist the ledger in Supabase).');
 }
 
 server.listen(PORT, () => {
