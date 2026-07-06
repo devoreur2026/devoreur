@@ -1,10 +1,11 @@
 // The economy UI: wallet bar (Credit / Earnings / fireballs), pot + bonus
 // status, kill feed, spectate banner, the mobile fire button, and the wallet
-// panel (balances, ledger history, Earnings->Credit transfer, shop, dev grant).
-// All state comes from the server (net.wallet / net.econ); this only displays it
-// and sends validated requests.
+// panel (balances, ledger history, Earnings->Credit transfer, shop). The panel
+// works in-game (over the socket) AND standalone from the home screen (over
+// HTTP), so a player can top up / cash out without entering the maze.
 import { net } from './net.js';
 import { state } from './state.js';
+import { auth } from './auth.js';
 import { throwFireball } from './player.js';
 
 function el(id){ return document.getElementById(id); }
@@ -35,7 +36,7 @@ net.on('state', function(){
   var b = el('spectateBanner');
   if (net.spectating){
     if (specReason === 'insufficient')
-      b.innerHTML = '<b>◉ SPECTATING</b>Not enough Credit to enter (need ' + (e.price || 1000) + '). Open your wallet ◈ to add Credit — you join the next round.';
+      b.innerHTML = '<b>◉ SPECTATING</b>Entry is ' + (e.price || 1000) + ' Credit — you have ' + ((net.wallet && net.wallet.credit) || 0) + '. Open your wallet ◈ to deposit, then you enter the next round.';
     else if (specReason === 'locked')
       b.innerHTML = '<b>◉ ENTRIES CLOSED</b>The round is locked (8:00). Watch the finish — you auto-enter the next round.';
     else
@@ -54,36 +55,68 @@ net.on('killfeed', function(text){
   setTimeout(function(){ d.style.opacity = 0; setTimeout(function(){ if (d.parentNode) d.parentNode.removeChild(d); }, 600); }, 5000);
 });
 
-/* ---- wallet panel ---- */
-function refreshPanel(){
-  el('pwCredit').textContent = net.wallet.credit;
-  el('pwEarn').textContent = net.wallet.earnings;
-  el('pwFb').textContent = net.wallet.fireballs;
-}
-function openWallet(){
-  state.uiBusy = true;
-  el('ovWallet').classList.remove('hide');
-  if (document.exitPointerLock) document.exitPointerLock();
-  refreshPanel(); net.requestHistory();
-  document.dispatchEvent(new Event('umbra-wallet-open'));   // let the payments UI refresh
-}
-function closeWallet(){ state.uiBusy = false; el('ovWallet').classList.add('hide'); }
-el('coinBtn').addEventListener('click', function(){ el('ovWallet').classList.contains('hide') ? openWallet() : closeWallet(); });
-el('walletClose').addEventListener('click', closeWallet);
-el('xferBtn').addEventListener('click', function(){ var a = parseInt(el('xferAmt').value, 10) || 0; if (a > 0){ net.transfer(a); el('xferAmt').value = ''; } });
-el('shopBtn').addEventListener('click', function(){ this.disabled = true; net.buyFireballs(); var b = this; setTimeout(function(){ b.disabled = false; }, 400); });
+/* ---- wallet panel (in-game over the socket, or standalone over HTTP) ---- */
+var walletMode = 'game';   // 'game' | 'standalone'
 
-net.on('history', function(rows){
+function setBalances(credit, earnings, fireballs){
+  el('pwCredit').textContent = credit;
+  el('pwEarn').textContent = earnings;
+  el('pwFb').textContent = fireballs;
+  el('wCredit').textContent = credit;         // keep the in-game top bar consistent
+  el('wEarn').textContent = earnings;
+  el('wFb').textContent = fireballs;
+}
+function refreshPanel(){ setBalances(net.wallet.credit, net.wallet.earnings, net.wallet.fireballs); }
+
+function renderWalletHistory(rows){
   var h = el('walletHistory'); h.innerHTML = '';
-  rows.forEach(function(r){
+  (rows || []).forEach(function(r){
     var row = document.createElement('div'); row.className = 'row';
     var lab = document.createElement('span'); lab.textContent = r.type.replace(/_/g, ' ');
     var amt = document.createElement('span'); amt.className = r.amount >= 0 ? 'pos' : 'neg';
     amt.textContent = (r.amount >= 0 ? '+' : '') + r.amount + ' ' + r.bucket;
     row.appendChild(lab); row.appendChild(amt); h.appendChild(row);
   });
-  if (!rows.length) h.innerHTML = '<div class="row"><span>no transactions yet</span><span></span></div>';
+  if (!(rows && rows.length)) h.innerHTML = '<div class="row"><span>no transactions yet</span><span></span></div>';
+}
+net.on('history', function(rows){ if (walletMode === 'game') renderWalletHistory(rows); });
+
+async function walletHttp(path, method, body){
+  var token = await auth.accessToken();
+  var res = await fetch(path, {
+    method: method || 'GET',
+    headers: Object.assign({ 'Content-Type': 'application/json' }, token ? { Authorization: 'Bearer ' + token } : {}),
+    body: body ? JSON.stringify(body) : undefined, cache: 'no-store'
+  });
+  try { return await res.json(); } catch (e) { return null; }
+}
+async function loadWalletHttp(){
+  var d = await walletHttp('/api/wallet');
+  if (d && d.ok){ setBalances(d.credit, d.earnings, d.fireballs); renderWalletHistory(d.history); }
+}
+
+function openWallet(standalone){
+  walletMode = standalone ? 'standalone' : 'game';
+  state.uiBusy = true;
+  el('ovWallet').classList.remove('hide');
+  if (document.exitPointerLock) document.exitPointerLock();
+  el('shopBtn').classList.toggle('hide', !!standalone);   // fireballs are in-game only
+  if (standalone) loadWalletHttp();
+  else { refreshPanel(); net.requestHistory(); }
+  document.dispatchEvent(new Event('umbra-wallet-open'));  // let the payments UI refresh
+}
+function closeWallet(){ state.uiBusy = false; el('ovWallet').classList.add('hide'); }
+el('coinBtn').addEventListener('click', function(){ el('ovWallet').classList.contains('hide') ? openWallet(false) : closeWallet(); });
+el('walletBtn').addEventListener('click', function(){ openWallet(true); });   // from the home screen
+el('walletClose').addEventListener('click', closeWallet);
+el('xferBtn').addEventListener('click', function(){
+  var a = parseInt(el('xferAmt').value, 10) || 0; if (a <= 0) return; el('xferAmt').value = '';
+  if (walletMode === 'standalone'){
+    walletHttp('/api/wallet/transfer', 'POST', { amount: a, nonce: net.nonce() })
+      .then(function(d){ if (d && d.ok){ setBalances(d.credit, d.earnings, d.fireballs); renderWalletHistory(d.history); } });
+  } else { net.transfer(a); }
 });
+el('shopBtn').addEventListener('click', function(){ this.disabled = true; net.buyFireballs(); var b = this; setTimeout(function(){ b.disabled = false; }, 400); });
 
 /* ---- mobile fire button ---- */
 if (window.matchMedia && window.matchMedia('(pointer:coarse)').matches){

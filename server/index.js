@@ -15,9 +15,11 @@ import { bank } from './bankInstance.js';
 import { initLedgerStore, ledgerPersistenceConfigured } from './ledgerStore.js';
 import { payments, paymentConfigObj, paymentStore, logPaymentStatus } from './paymentsInstance.js';
 import { makePaymentApi } from './paymentRoutes.js';
+import { makeWalletApi } from './walletRoutes.js';
 import { initPaymentStore, paymentPersistenceConfigured } from './paymentStoreSupabase.js';
 
 var paymentApi = makePaymentApi({ payments: payments, store: paymentStore, config: paymentConfigObj, verifyToken: verifyToken });
+var walletApi = makeWalletApi({ bank: bank, verifyToken: verifyToken });
 
 var __dirname = path.dirname(fileURLToPath(import.meta.url));
 var ROOT = path.resolve(__dirname, '..');   // project root (serves index.html, src/, shared/)
@@ -43,8 +45,9 @@ var MIME = {
 var server = http.createServer(async (req, res) => {
   var urlPath = decodeURIComponent(req.url.split('?')[0]);
 
-  // payment endpoints (/api/pay/* + the Unipesa callback) — self-contained
+  // payment + wallet endpoints — self-contained, session/signature gated
   if (await paymentApi(req, res, urlPath)) return;
+  if (await walletApi(req, res, urlPath)) return;
 
   // Public client config (Supabase URL + publishable anon key) from env vars.
   if (urlPath === '/api/config'){
