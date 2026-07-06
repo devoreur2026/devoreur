@@ -45,27 +45,28 @@ console.log('— open entry: funded players enter on join; pot / eater-kill / pa
   ok(wb.last('spawn'), 'respawn sends a fresh spawn point');
   eq(B.health, MAX_HEALTH, 'respawn restores full health');
 
-  room.endRound(A);                                 // A wins: forfeit A(1000) + B(750) -> pot, then payout
+  room.endRound(A);                                 // A wins: forfeit half of A(1000) + B(750) -> pot, then payout
   eq(bank.wallet('A').earnings, BONUS_POT, 'winner gets the guaranteed bonus (pot < 15000)');
   var ro = wa.last('roundOver');
-  eq(ro.pot, 125 + 1000 + 750, 'summary pot = eater share + forfeited stakes (1875)');
+  eq(ro.pot, 125 + 500 + 375, 'summary pot = eater share + half of each forfeited stake (1000)');
   eq(ro.target, BONUS_POT, 'payout is the bonus floor'); eq(ro.rolled, 0, 'nothing rolls over on a win');
   ok(ro.players.every(function(p){ return typeof p.entry === 'number'; }), 'summary lists each entry price');
   eq(bank.auditRound(room.roundId), 0, 'round audit nets to zero');
 }
 
-console.log('— rising price for a mid-round late join');
+console.log('— flat price for a mid-round late join (no late-comer penalty)');
 {
   var bank = new Bank();
   var room = new Room('t', bank); clearInterval(room.timer);
   bank.grant('A', 5000, 'gA'); bank.grant('L', 5000, 'gL');
   room.addPlayer('A', 'A', mkws());
-  room.t = 185;                                    // 3:05 into the round
+  room.t = 1800;                                   // 30:00 into the round
   var wl = mkws();
   var L = room.addPlayer('LATE', 'L', wl);
-  ok(L.paid, 'late joiner still enters (open maze)');
-  eq(L.entryPrice, entryPrice(185), 'charged the risen price (1150)');
-  eq(bank.wallet('L').credit, 5000 - entryPrice(185), 'debited the risen price');
+  ok(L.paid, 'late joiner still enters (open maze, any time)');
+  eq(L.entryPrice, ENTRY_BASE, 'charged the same flat 1000');
+  eq(L.lives, 4, 'still 4 lives');
+  eq(bank.wallet('L').credit, 5000 - ENTRY_BASE, 'debited the flat 1000');
 }
 
 console.log('— broke at the door = ghost (price vs balance shown)');
@@ -82,14 +83,14 @@ console.log('— broke at the door = ghost (price vs balance shown)');
   ok(wp.last('spawn'), 'ghost still gets a spawn to roam');
 }
 
-console.log('— entries lock at 8:00; latecomer waits for next round');
+console.log('— entries stay open the whole session; only close at the round limit');
 {
   var bank = new Bank();
   var room = new Room('t', bank); clearInterval(room.timer);
   bank.grant('A', 5000, 'gA'); bank.grant('X', 5000, 'gX');
   room.addPlayer('A', 'A', mkws());
-  room.t = ENTRY_CLOSE + 5;                         // 8:05 — entries closed
-  ok(!room.entriesOpen(), 'entries closed after 8:00');
+  room.t = ENTRY_CLOSE + 5;                         // past the 1-hour limit — the only time entries are closed
+  ok(!room.entriesOpen(), 'entries closed only at/after the session limit');
   var wx = mkws();
   var X = room.addPlayer('X', 'X', wx);
   ok(!X.paid, 'arrival during lockout is a ghost');
@@ -108,11 +109,11 @@ console.log('— guaranteed bonus top-up (always on, any player count)');
   ids.forEach(function(a){ players[a] = room.addPlayer(a, a, ws[a]); });
   eq(room.paidCount, 3, 'three paid players');
   var houseBefore = bank.houseBalance();
-  room.endRound(players['A']);                       // forfeit 3 * 1000 stakes -> pot 3000, then payout
+  room.endRound(players['A']);                       // forfeit 3 stakes: 1500 -> pot, 1500 -> house, then payout
   eq(bank.wallet('A').earnings, BONUS_POT, 'winner guaranteed 15000 with only 3 players');
   var ro = ws['A'].last('roundOver');
-  eq(ro.topup, BONUS_POT - 3000, 'house tops up the gap over the 3 forfeited stakes'); ok(ro.bonus, 'bonus always flagged');
-  eq(bank.houseBalance(), houseBefore - ro.topup, 'house paid the top-up');
+  eq(ro.topup, BONUS_POT - 1500, 'house tops up the gap over the pot (half of 3 stakes)'); ok(ro.bonus, 'bonus always flagged');
+  eq(bank.houseBalance(), houseBefore + 1500 - ro.topup, 'house nets its forfeit share minus the top-up');
   eq(bank.auditRound(room.roundId), 0, 'audit zero');
 }
 
@@ -126,11 +127,11 @@ console.log('— time-limit rollover: pot carries into the next round, audits st
   var r1 = room.roundId;
   eq(room.potBalance(), 0, 'r1 pot empty until the round-end forfeit');
 
-  room.endRound(null);                              // time limit hit, no winner -> forfeit stakes to pot
+  room.endRound(null);                              // time limit hit, no winner -> forfeit half of each stake to pot
   room.newRound();                                  // rolls r1 pot into r2 + re-charges present players
   var r2 = room.roundId;
-  eq(room.rolledIn, 2000, 'entire r1 pot (2 forfeited stakes) rolled into r2');
-  eq(room.potBalance(), 2000, 'r2 pot = rolled-over pot (re-entries are staked, not pooled)');
+  eq(room.rolledIn, 1000, 'r1 pot (half of 2 forfeited stakes) rolled into r2');
+  eq(room.potBalance(), 1000, 'r2 pot = rolled-over pot (re-entries are staked, not pooled)');
   eq(bank.auditRound(r1), 0, 'expired round r1 audits to zero');
   eq(bank.auditRound(r2), 0, 'r2 (rollover + entries) audits to zero');
   ok(bank.ledger.verifyIntegrity(), 'ledger integrity holds through rollover');
@@ -167,7 +168,7 @@ console.log('— leaving does not refund; stakes forfeit to the pot at round end
   room.endRound(null);                              // session ends -> both entrants forfeit
   eq(bank.stakeBalance('A'), 0, 'A stake forfeited');
   eq(bank.stakeBalance('B'), 0, 'B stake forfeited');
-  eq(bank.potBalance(round), 2000, 'both stakes went into the pot');
+  eq(bank.potBalance(round), 1000, 'half of both stakes went into the pot');
   eq(bank.auditRound(round), 0, 'round nets to zero');
 }
 

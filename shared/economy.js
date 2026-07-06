@@ -46,11 +46,10 @@ export var FIREBALL_FLARE = 1.4;        // seconds a thrower is "loud" to eaters
 export var DEV_GRANT = 5000;
 
 /* ---- pure split helpers: parts always sum to the whole ---- */
-// Entry price rises 50 CDF per full minute since the round started, capped at
-// ENTRY_MAX. 0:00–0:59 -> 1000, 1:00 -> 1050, 5:00 -> 1250, 20:00+ -> 2000.
+// Flat entry: join any time in the session for the same 1000 CDF (no late-comer
+// penalty). Always 4 lives per entry.
 export function entryPrice(roundElapsedSeconds){
-  var minutes = Math.floor(Math.max(0, roundElapsedSeconds) / 60);
-  return Math.min(ENTRY_MAX, ENTRY_BASE + ENTRY_PER_MINUTE * minutes);
+  return ENTRY_BASE;
 }
 export function entriesOpen(roundElapsedSeconds){ return roundElapsedSeconds < ENTRY_CLOSE; }
 export function splitEntry(price){
@@ -68,6 +67,11 @@ export function splitFireballKill(taken){
 export function splitEaterKill(taken){
   var house = Math.round(taken * EATER_HOUSE_SHARE);
   return { house: house, pot: taken - house };
+}
+// leftover stake (unused lives) at session end -> 50% house / 50% pot
+export function splitForfeit(amount){
+  var house = Math.floor(amount / 2);
+  return { house: house, pot: amount - house };
 }
 // The winner always gets at least BONUS_POT — the bonus is on every round, no
 // minimum player count. (paidPlayers is unused now; kept for call-site stability.)

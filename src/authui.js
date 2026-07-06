@@ -41,8 +41,8 @@ function pollRound(){
   fetch('/api/round', { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(info){
     if (!info) return;
     el('joinInfo').innerHTML = info.open
-      ? 'Entry <b>' + info.price + '</b> CDF · Pot <b>' + info.pot + '</b> · ' + fmtClock(info.elapsed) + ' / 10:00'
-      : 'Entries closed (' + fmtClock(info.elapsed) + ') · Pot <b>' + info.pot + '</b> — you join the next round';
+      ? 'Entry <b>' + info.price + '</b> CDF · 4 lives · Pot <b>' + info.pot + '</b> · ' + fmtClock(info.elapsed) + ' / ' + fmtClock(info.limit || 3600)
+      : 'Session ending (' + fmtClock(info.elapsed) + ') · Pot <b>' + info.pot + '</b> — you join the next one';
   }).catch(function(){});
 }
 function startPoll(){ if (!roundPoll){ pollRound(); roundPoll = setInterval(pollRound, 2500); } }

@@ -56,8 +56,8 @@ console.log('— the same happens on a time-limit expiry (no winner); pot still 
   room.tick();                                        // kickAll + newRound (rolls the pot over)
 
   eq(room.players.size, 0, 'everyone kicked on expiry too');
-  eq(room.rolledIn, 1000, 'the unclaimed pot (forfeited stake) rolled into the fresh round');
-  eq(room.potBalance(), 1000, 'fresh round starts with the rolled-over pot');
+  eq(room.rolledIn, 500, 'the unclaimed pot (half the forfeited stake) rolled into the fresh round');
+  eq(room.potBalance(), 500, 'fresh round starts with the rolled-over pot');
   eq(bank.auditRound(r1), 0, 'the expired round still audits to zero');
 }
 

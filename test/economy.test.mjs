@@ -102,12 +102,14 @@ section('lives + forfeit');
   b.buyLives('A', 'r1', ENTRY_BASE, 'n1');
   eq(b.lives('A'), 4, 'buying a life-pack restores 4 lives');
   eq(b.wallet('A').credit, 3000, 'paid another 1000');
-  // survive with lives left -> forfeit the rest to the pot at round end
+  // survive with lives left -> forfeit the rest 50/50 house/pot at round end
   b.killByFireball('A', 'K', 'r1', 'k5');                   // 1 death -> stake 750
-  var potBefore = b.potBalance('r1');
-  b.forfeitStake('A', 'r1');
+  var potBefore = b.potBalance('r1'), houseBefore = b.houseBalance();
+  var f = b.forfeitStake('A', 'r1');
   eq(b.stakeBalance('A'), 0, 'leftover stake forfeited');
-  eq(b.potBalance('r1'), potBefore + 750, 'the 750 goes into the pot');
+  eq(f.toHouse, 375, 'half the 750 -> house'); eq(f.toPot, 375, 'half the 750 -> pot');
+  eq(b.potBalance('r1'), potBefore + 375, 'half the leftover goes into the pot');
+  eq(b.houseBalance(), houseBefore + 375, 'the other half goes to the house');
   b.forfeitStake('A', 'r1');                                // idempotent
   eq(b.stakeBalance('A'), 0, 'forfeit idempotent');
   invariants(b, 'r1');
@@ -118,9 +120,9 @@ section('payout: bonus floor even with few players');
 {
   var b = new Bank();
   ['A', 'B', 'C'].forEach(function(p){ b.grant(p, 5000, 'g' + p); b.enterRound(p, 'r1', ENTRY_BASE); });
-  ['A', 'B', 'C'].forEach(function(p){ b.forfeitStake(p, 'r1'); });   // round-end forfeit funds the pot
+  ['A', 'B', 'C'].forEach(function(p){ b.forfeitStake(p, 'r1'); });   // round-end forfeit: half to pot
   var pot = b.potBalance('r1');
-  eq(pot, 3000, 'pot = 3 forfeited stakes (3 * 1000)');
+  eq(pot, 1500, 'pot = half of 3 forfeited stakes (3 * 500)');
   var pay = b.payout('A', 'r1', 3);
   eq(pay.target, BONUS_POT, 'winner gets the guaranteed bonus (15000) even with 3 players');
   eq(pay.topup, BONUS_POT - pot, 'house tops up the gap');
@@ -136,7 +138,7 @@ section('payout: guaranteed 15000 + top-up / bigger pot');
   ['A', 'B', 'C', 'D', 'E'].forEach(function(p){ b.grant(p, 5000, 'g' + p); b.enterRound(p, 'r1', ENTRY_BASE); });
   ['A', 'B', 'C', 'D', 'E'].forEach(function(p){ b.forfeitStake(p, 'r1'); });
   var pot = b.potBalance('r1');
-  eq(pot, 5000, 'pot = 5 forfeited stakes');
+  eq(pot, 2500, 'pot = half of 5 forfeited stakes (5 * 500)');
   var houseBefore = b.houseBalance();
   var pay = b.payout('A', 'r1', 5);
   eq(pay.target, BONUS_POT, 'winner guaranteed 15000');
@@ -148,7 +150,7 @@ section('payout: guaranteed 15000 + top-up / bigger pot');
 
   // pot already exceeds the bonus => winner gets the (bigger) pot, no top-up
   var b2 = new Bank();
-  var many = 16;                                    // 16 * 1000 forfeited = 16000 > 15000
+  var many = 40;                                    // 40 * 500 (half of each stake) = 20000 > 15000
   for (var i = 0; i < many; i++){ var p = 'X' + i; b2.grant(p, 5000, 'g' + p); b2.enterRound(p, 'r2', ENTRY_BASE); b2.forfeitStake(p, 'r2'); }
   var pot2 = b2.potBalance('r2');
   ok(pot2 > BONUS_POT, 'pot exceeds 15000 (got ' + pot2 + ')');
@@ -245,25 +247,21 @@ section('full round audit');
   ok(!neg, 'no player balance is ever negative');
 }
 
-/* ---------- rising entry price ---------- */
-section('rising entry price');
+/* ---------- flat entry price (no late-comer penalty) ---------- */
+section('flat entry price');
 {
-  eq(entryPrice(0), ENTRY_BASE, 'minute 0 = base (1000)');
-  eq(entryPrice(59), ENTRY_BASE, '0:59 still base');
-  eq(entryPrice(60), ENTRY_BASE + ENTRY_PER_MINUTE, '1:00 = 1050');
-  eq(entryPrice(300), ENTRY_BASE + 5 * ENTRY_PER_MINUTE, '5:00 = 1250');
-  eq(entryPrice(20 * 60), ENTRY_MAX, '20:00 = 2000 (the cap)');
-  eq(entryPrice(60 * 60), ENTRY_MAX, 'past the cap it stays 2000, no more growing');
-  eq(entryPrice(19 * 60), ENTRY_MAX - ENTRY_PER_MINUTE, '19:00 = 1950 (just under the cap)');
-  // a late entry costs more -> is held as more stake -> more lives
+  eq(entryPrice(0), ENTRY_BASE, 'start = 1000');
+  eq(entryPrice(60), ENTRY_BASE, 'a minute in still 1000');
+  eq(entryPrice(300), ENTRY_BASE, 'five minutes in still 1000');
+  eq(entryPrice(20 * 60), ENTRY_BASE, 'twenty minutes in still 1000');
+  eq(entryPrice(60 * 60), ENTRY_BASE, 'an hour in still 1000 (join any time, same price)');
+  // a late joiner pays the same 1000 -> the same 4 lives
   var b = new Bank();
   b.grant('L', 5000, 'gL');
-  var price = entryPrice(300);                       // 1250
-  var r = b.enterRound('L', 'rP', price);
-  eq(r.price, price, 'charged the late price');
-  eq(b.wallet('L').credit, 5000 - price, 'debited the late price');
-  eq(b.stakeBalance('L'), price, 'the full price is held as stake');
-  eq(b.lives('L'), Math.floor(price / STAKE_PER_LIFE), 'lives = price / 250 (5 lives at 1250)');
+  var r = b.enterRound('L', 'rP', entryPrice(1800));
+  eq(r.price, ENTRY_BASE, 'charged 1000 even 30 min in');
+  eq(b.stakeBalance('L'), ENTRY_BASE, 'held as 1000 stake');
+  eq(b.lives('L'), 4, 'always 4 lives');
   invariants(b, 'rP');
 }
 
@@ -273,24 +271,24 @@ section('pot rollover');
   var b = new Bank();
   b.grant('A', 5000, 'gA'); b.grant('B', 5000, 'gB');
   b.enterRound('A', 'R1', ENTRY_BASE); b.enterRound('B', 'R1', ENTRY_BASE);
-  b.forfeitStake('A', 'R1'); b.forfeitStake('B', 'R1');   // round-end forfeit funds the pot
+  b.forfeitStake('A', 'R1'); b.forfeitStake('B', 'R1');   // round-end forfeit: half of each stake -> pot
   var potR1 = b.potBalance('R1');
-  eq(potR1, 2000, 'R1 pot = 2 forfeited stakes (no winner, time limit hit)');
+  eq(potR1, 1000, 'R1 pot = half of 2 forfeited stakes (no winner, time limit hit)');
 
   var carried = b.rollover('R1', 'R2');             // R1 expired unclaimed
-  eq(carried, 2000, 'entire pot rolls over');
+  eq(carried, 1000, 'entire pot rolls over');
   eq(b.potBalance('R1'), 0, 'R1 pot emptied');
-  eq(b.potBalance('R2'), 2000, "R2 starts with R1's pot (no extra house cut)");
-  eq(b.houseBalance(), 0, 'house takes no rake at entry (stake model)');
+  eq(b.potBalance('R2'), 1000, "R2 starts with R1's pot (no extra house cut)");
+  eq(b.houseBalance(), 1000, 'house holds the other half of the forfeited stakes');
   eq(b.auditRound('R1'), 0, 'expired round R1 still audits to zero');
   eq(b.auditRound('R2'), 0, 'rollover legs net to zero within R2');
 
   // play R2 to a win: pot = rollover + forfeited entries, winner takes it, audit 0
   b.enterRound('A', 'R2', ENTRY_BASE); b.enterRound('B', 'R2', ENTRY_BASE);
   b.forfeitStake('A', 'R2'); b.forfeitStake('B', 'R2');
-  eq(b.potBalance('R2'), 2000 + 2000, 'R2 pot = rollover + forfeited entries');
+  eq(b.potBalance('R2'), 1000 + 1000, 'R2 pot = rollover + half the forfeited entries');
   b.payout('A', 'R2', 2);
-  eq(b.wallet('A').earnings, BONUS_POT, 'winner takes at least the guaranteed bonus (pot 4000 < 15000)');
+  eq(b.wallet('A').earnings, BONUS_POT, 'winner takes at least the guaranteed bonus (pot 2000 < 15000)');
   eq(b.potBalance('R2'), 0, 'R2 pot drained');
   eq(b.auditRound('R2'), 0, 'R2 (rollover + entries + payout) nets to zero');
   b.rollover('R1', 'R2');                            // idempotent
@@ -303,17 +301,17 @@ section('abort keeps the carried-over pot');
 {
   var b = new Bank();
   b.grant('A', 10000, 'gA');
-  b.enterRound('A', 'R1', 1000); b.forfeitStake('A', 'R1');   // R1 ended -> pot(R1) = 1000
-  b.rollover('R1', 'R2');                            // pot -> R2 (1000)
-  b.enterRound('A', 'R2', 1000);                     // A stakes into R2 (pot still 1000, rolled)
+  b.enterRound('A', 'R1', 1000); b.forfeitStake('A', 'R1');   // R1 ended -> pot(R1) = 500 (half)
+  b.rollover('R1', 'R2');                            // pot -> R2 (500)
+  b.enterRound('A', 'R2', 1000);                     // A stakes into R2 (pot still 500, rolled)
   eq(b.wallet('A').credit, 8000, 'A paid both entries');
   b.abortRound('R2');                                // void R2: refund the entry, keep the rollover
   eq(b.wallet('A').credit, 9000, 'R2 entry refunded');
   eq(b.stakeBalance('A'), 0, "A's R2 stake reversed on refund");
-  eq(b.potBalance('R2'), 1000, 'the carried-over 1000 STAYS in the pot (not stranded)');
+  eq(b.potBalance('R2'), 500, 'the carried-over pot STAYS (not stranded)');
   eq(b.potBalance('R1'), 0, 'nothing put back into the dead source round');
   b.rollover('R2', 'R3');
-  eq(b.potBalance('R3'), 1000, 'the carried pot continues forward to the next round');
+  eq(b.potBalance('R3'), 500, 'the carried pot continues forward to the next round');
   ok(b.ledger.verifyIntegrity(), 'ledger integrity holds');
 }
 

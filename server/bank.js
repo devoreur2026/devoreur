@@ -3,7 +3,7 @@
 import {
   CREDIT, EARNINGS, HOLD, STAKE, HOUSE, MINT, GATEWAY, POT, STAKE_PER_LIFE,
   FIREBALL_PACK, FIREBALL_PACK_PRICE,
-  splitFireballKill, splitEaterKill, winnerPayout
+  splitFireballKill, splitEaterKill, splitForfeit, winnerPayout
 } from '../shared/economy.js';
 import { Ledger } from './ledger.js';
 
@@ -68,17 +68,19 @@ export class Bank {
     return { ok: true, price: price, stake: this.stakeBalance(account) };
   }
 
-  // Forfeit an account's remaining stake into the pot at round end. Idempotent.
+  // Forfeit an account's remaining stake at round end: 50% house, 50% pot. Idempotent.
   forfeitStake(account, roundId){
     var idem = 'forfeit:' + roundId + ':' + account;
     if (this.ledger.has(idem)) return { ok: true, idempotent: true };
     var s = this.stakeBalance(account);
     if (s <= 0) return { ok: true, empty: true };
+    var f = splitForfeit(s);
     this.ledger.post(idem, [
       { account: account, bucket: STAKE, amount: -s, type: 'forfeit' },
-      { account: POT(roundId), bucket: CREDIT, amount: s, type: 'forfeit_pot' }
+      { account: HOUSE, bucket: CREDIT, amount: f.house, type: 'forfeit_house' },
+      { account: POT(roundId), bucket: CREDIT, amount: f.pot, type: 'forfeit_pot' }
     ], this._meta({ round: roundId, counterparty: POT(roundId) }));
-    return { ok: true, forfeited: s };
+    return { ok: true, forfeited: s, toHouse: f.house, toPot: f.pot };
   }
 
   // Roll an unclaimed pot into the next round (no house cut). Both legs are

@@ -38,7 +38,7 @@ net.on('state', function(){
     if (specReason === 'insufficient')
       b.innerHTML = '<b>◉ SPECTATING</b>Entry is ' + (e.price || 1000) + ' Credit — you have ' + ((net.wallet && net.wallet.credit) || 0) + '. Open your wallet ◈ to deposit, then you enter the next round.';
     else if (specReason === 'locked')
-      b.innerHTML = '<b>◉ ENTRIES CLOSED</b>The round is locked (8:00). Watch the finish — you auto-enter the next round.';
+      b.innerHTML = '<b>◉ SESSION ENDING</b>This session is finishing. Watch the end — you auto-enter the next one.';
     else
       b.innerHTML = '<b>◉ SPECTATING</b>You join the next round — roam and watch for now.';
     b.classList.remove('hide');
