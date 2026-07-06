@@ -8,7 +8,7 @@ import { fileURLToPath } from 'url';
 import { WebSocketServer } from 'ws';
 import { Room } from './room.js';
 import { MAX_PLAYERS } from '../shared/config.js';
-import { DEV_GRANT } from '../shared/economy.js';
+import { DEV_GRANT, ENTRY_BASE, ROUND_LIMIT } from '../shared/economy.js';
 import { MSG } from '../shared/protocol.js';
 import { verifyToken, authConfig, authConfigured } from './auth.js';
 import { bank } from './bankInstance.js';
@@ -43,6 +43,16 @@ var server = http.createServer((req, res) => {
     var cfg = authConfig();
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
     res.end(JSON.stringify({ supabaseUrl: cfg.url || null, supabaseAnonKey: cfg.anonKey || null, dev: DEV }));
+    return;
+  }
+
+  // Live preview of the round a joiner would enter (current price / pot / timer)
+  // for the join screen.
+  if (urlPath === '/api/round'){
+    var rm = rooms.find(function(r){ return r.hasRoom(); });
+    var info = rm ? rm.roundInfo() : { price: ENTRY_BASE, pot: 0, elapsed: 0, limit: ROUND_LIMIT, open: true, paid: 0 };
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify(info));
     return;
   }
 

@@ -102,10 +102,12 @@ export var net = {
         this.seed = m.seed;
         this.grid = Uint8Array.from(atob(m.grid), function(c){ return c.charCodeAt(0); });
         this.treasureT = m.treasure;
-        this.startT = m.start;
         this.spectating = false;
         console.info('[join] round received (grid ' + this.grid.length + ' cells) → entering');
         this._emit('round', m);
+        break;
+      case MSG.SPAWN:
+        this._emit('spawn', m);        // randomized spawn point (join / round / respawn)
         break;
       case MSG.STATE:
         this.time = m.time;

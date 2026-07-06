@@ -21,6 +21,7 @@ function showErr(msg){ errEl.textContent = msg || ''; errEl.classList.toggle('hi
 function clearErr(){ showErr(''); }
 function show(name){
   clearErr();
+  stopPoll();
   for (var k in panels) panels[k].classList.toggle('hide', k !== name);
   var first = panels[name].querySelector('.auth-input');
   if (first) setTimeout(function(){ try { first.focus(); } catch (e) {} }, 30);
@@ -30,7 +31,22 @@ function showReady(){
   el('whoName').textContent = u ? u.name : '';
   resetPlay();
   show('ready');
+  startPoll();
 }
+
+// live round preview (entry price / pot / clock) while on the ready screen
+var roundPoll = null;
+function fmtClock(s){ var m = Math.floor(s / 60), r = Math.floor(s % 60); return m + ':' + (r < 10 ? '0' : '') + r; }
+function pollRound(){
+  fetch('/api/round', { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(info){
+    if (!info) return;
+    el('joinInfo').innerHTML = info.open
+      ? 'Entry <b>' + info.price + '</b> CDF · Pot <b>' + info.pot + '</b> · ' + fmtClock(info.elapsed) + ' / 10:00'
+      : 'Entries closed (' + fmtClock(info.elapsed) + ') · Pot <b>' + info.pot + '</b> — you join the next round';
+  }).catch(function(){});
+}
+function startPoll(){ if (!roundPoll){ pollRound(); roundPoll = setInterval(pollRound, 2500); } }
+function stopPoll(){ if (roundPoll){ clearInterval(roundPoll); roundPoll = null; } }
 function resetPlay(){ var b = el('playBtn'); b.disabled = false; b.textContent = 'Enter the maze'; }
 
 // run an async action with a button in a "busy" state
@@ -152,6 +168,7 @@ var enterTimer = null;
 function clearEnterTimer(){ if (enterTimer){ clearTimeout(enterTimer); enterTimer = null; } }
 function startPlay(){
   clearErr();
+  stopPoll();
   var b = el('playBtn'); b.disabled = true; b.textContent = 'Entering…';
   console.info('[join] entering the maze…');
   auth.accessToken().then(function(token){

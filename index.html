@@ -168,7 +168,7 @@
   <div id="topL" class="tag">Deaths<b id="deaths">0</b><span id="whoami" style="margin-left:16px;color:var(--gold)"></span></div>
   <div id="topR"><span id="timer">00:00</span><button id="coinBtn" title="wallet">◈</button><button id="mute" title="sound">♪</button></div>
   <div id="walletBar">◈ <b id="wCredit">0</b> · <span class="earn" id="wEarn">0</span> earn · <span class="fb">🔥<b id="wFb">0</b></span></div>
-  <div id="potBar">POT <b id="potVal">0</b> · <span id="bonusVal"></span></div>
+  <div id="potBar">POT <b id="potVal">0</b> · <span id="entryVal"></span> · <span id="bonusVal"></span></div>
   <div id="killfeed"></div>
   <div id="cross"></div>
   <div id="stamWrap"><div id="stam"></div></div>
@@ -234,6 +234,7 @@
     <!-- signed in, ready -->
     <div class="auth-panel hide" id="pReady">
       <div class="auth-note">Signed in as <b id="whoName"></b></div>
+      <div id="joinInfo" class="auth-note" style="color:var(--gold);min-height:1.4em"></div>
       <button class="btn" id="playBtn">Enter the maze</button>
       <div class="auth-links"><span class="auth-link" id="signoutLink">Sign out</span></div>
     </div>

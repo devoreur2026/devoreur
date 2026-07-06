@@ -4,7 +4,7 @@
 import { state } from './state.js';
 import { net } from './net.js';
 import { buildMaze, canvas } from './scene.js';
-import { player, setMaze, spawnAtStart, markers } from './player.js';
+import { player, setMaze, spawnTo, markers } from './player.js';
 import { scene } from './scene.js';
 import { Sfx } from './audio.js';
 import { clear as clearFireballs } from './fireballs.js';
@@ -52,11 +52,14 @@ setQuality(isMobile ? 'low' : 'high');
 // Show who we're signed in as, in-game.
 net.on('welcome', function(){ document.getElementById('whoami').textContent = net.name ? '◈ ' + net.name : ''; });
 
-// New maze for a round (initial join or after a countdown).
+// The server places us at a randomized spawn (join / round / respawn).
+net.on('spawn', function(m){ spawnTo(m.x, m.z); });
+
+// New maze for a round (initial join or after a countdown). Position comes from
+// the SPAWN message the server sends alongside.
 net.on('round', function(){
   var maze = buildMaze(net.grid, net.treasureT);
   setMaze(maze);
-  spawnAtStart(net.startT);
   clearMarkers();
   clearFireballs();
   ovStart.classList.add('hide');     // admitted -> leave the start/auth screen
@@ -66,13 +69,12 @@ net.on('round', function(){
   if (document.pointerLockElement !== canvas) lockPointer();
 });
 
-// The server caught us: it already respawned us at start; show the overlay.
+// The server caught us: it already respawned us (SPAWN sets the new position).
 net.on('killed', function(m){
   if (state.phase === 'over') return;   // round already ending
   document.getElementById('deathTitle').textContent =
     (m && m.by === 'fireball') ? (m.byName || 'Someone') + ' burned you' : 'A Darkness Eater found you';
   state.phase = 'dead';
-  spawnAtStart(net.startT);
   Sfx.sting();
   flashEl.style.opacity = 0.75;
   setTimeout(function(){ flashEl.style.opacity = 0; }, 180);
@@ -85,20 +87,28 @@ document.getElementById('respawnBtn').addEventListener('click', function(){
   lockPointer();
 });
 
-// Someone reached the treasure: freeze into the win overlay + countdown.
+// Round over: a win, OR the 10-minute limit with the pot rolling over.
 net.on('roundOver', function(m){
   state.phase = 'over';
-  var mine = m.winnerId === net.id;
-  winTitle.textContent = mine ? 'The Heart of the Maze is yours'
-                              : (m.winnerName || 'Someone') + ' claimed the Heart';
-  // round summary: pot breakdown, winner payout, per-player net
+  var rollover = !m.winnerId && (m.rolled || 0) > 0;
+  if (rollover){
+    winTitle.textContent = 'The Heart keeps its treasure';
+  } else {
+    var mine = m.winnerId === net.id;
+    winTitle.textContent = mine ? 'The Heart of the Maze is yours'
+                                : (m.winnerName || 'Someone') + ' claimed the Heart';
+  }
+  // round summary: pot breakdown / rollover, and per-player net + entry paid
   var box = document.getElementById('summaryBox');
   if (m.players){
-    var head = 'Pot ' + (m.pot || 0) + (m.topup ? ' + ' + m.topup + ' bonus' : '') +
-               ' → ' + (m.winnerName || '—') + ' won ' + (m.target || 0) + ' CDF';
+    var head = rollover
+      ? 'No one reached the Heart — the pot grows to ' + m.rolled + ' CDF for the next round.'
+      : 'Pot ' + (m.pot || 0) + (m.topup ? ' + ' + m.topup + ' bonus' : '') +
+        ' → ' + (m.winnerName || '—') + ' won ' + (m.target || 0) + ' CDF';
     var rows = m.players.slice().sort(function(a, b){ return b.net - a.net; }).map(function(p){
       var me = p.id === net.id;
-      return '<div class="' + (me ? 'me' : '') + '">' + (me ? '▸ ' : '') + p.name + ' &nbsp; ' +
+      var entry = p.entry ? ' <span style="color:#565b6e">· entry ' + p.entry + '</span>' : '';
+      return '<div class="' + (me ? 'me' : '') + '">' + (me ? '▸ ' : '') + p.name + entry + ' &nbsp; ' +
              (p.net >= 0 ? '+' : '') + p.net + '</div>';
     }).join('');
     box.innerHTML = '<div style="color:var(--gold);margin-bottom:8px">' + head + '</div>' + rows;

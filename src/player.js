@@ -12,7 +12,6 @@
 import { THREE } from './three.js';
 import { EYE, WALK, SPRINT, INPUT_STEP } from '../shared/config.js';
 import { FIREBALL_COOLDOWN } from '../shared/economy.js';
-import { WX } from '../shared/maze.js';
 import { moveStep } from '../shared/movement.js';
 import { Sfx } from './audio.js';
 import { camera, canvas, scene, makeGlow } from './scene.js';
@@ -52,16 +51,14 @@ var ox = 0, oz = 0;            // smooth correction offset (decays to 0)
 var acc = 0, seq = 0;
 var history = [];              // unacked input commands, in order
 
-export function resetYaw(){
-  player.yaw = (maze && !maze.isWall(1, 2)) ? Math.PI : -Math.PI / 2;
-  player.pitch = 0;
-}
-export function spawnAtStart(startT){
-  px = ppx = WX(startT.x); pz = ppz = WX(startT.z);
+// Snap prediction to a server-chosen spawn (join / new round / respawn). Spawns
+// are randomized world positions now, so the server sends them explicitly.
+export function spawnTo(x, z){
+  px = ppx = x; pz = ppz = z;
   ox = oz = 0; acc = 0; history.length = 0;
-  player.x = px; player.z = pz;
+  player.x = x; player.z = z;
   player.stamina = 100; player.bob = 0;
-  resetYaw();
+  player.pitch = 0;
 }
 
 var keys = {}, footTimer = 0;

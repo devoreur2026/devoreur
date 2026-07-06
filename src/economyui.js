@@ -24,15 +24,22 @@ net.on('spectate', function(m){ specReason = (m && m.reason) || 'midround'; });
 net.on('state', function(){
   var e = net.econ || {};
   el('potVal').textContent = e.pot || 0;
+  el('entryVal').textContent = e.open ? ('ENTRY ' + (e.price || 0)) : 'ENTRIES CLOSED';
+  el('entryVal').className = e.open ? '' : 'locked';
   var bv = el('bonusVal');
-  if (e.paid >= 5){ bv.textContent = 'BONUS ' + (e.bonusPot || 10000) + ' unlocked'; bv.className = 'unlocked'; }
-  else { bv.textContent = 'BONUS ' + (e.bonusPot || 10000) + ' 🔒 ' + (e.paid || 0) + '/5'; bv.className = 'locked'; }
+  if (e.paid >= 5){ bv.textContent = 'BONUS unlocked'; bv.className = 'unlocked'; }
+  else { bv.textContent = 'BONUS 🔒 ' + (e.paid || 0) + '/5'; bv.className = 'locked'; }
+  var tEl = document.getElementById('timer');
+  if (tEl) tEl.style.color = e.open ? '' : '#e8574a';   // round timer reddens once entries close
 
   var b = el('spectateBanner');
   if (net.spectating){
-    b.innerHTML = (specReason === 'insufficient')
-      ? '<b>◉ SPECTATING</b>Not enough Credit to enter (need 1000). Open your wallet ◈ to add Credit — you join the next round.'
-      : '<b>◉ SPECTATING</b>You joined mid-round. You play from the next round — roam and watch for now.';
+    if (specReason === 'insufficient')
+      b.innerHTML = '<b>◉ SPECTATING</b>Not enough Credit to enter (need ' + (e.price || 1000) + '). Open your wallet ◈ to add Credit — you join the next round.';
+    else if (specReason === 'locked')
+      b.innerHTML = '<b>◉ ENTRIES CLOSED</b>The round is locked (8:00). Watch the finish — you auto-enter the next round.';
+    else
+      b.innerHTML = '<b>◉ SPECTATING</b>You join the next round — roam and watch for now.';
     b.classList.remove('hide');
   } else {
     b.classList.add('hide');
