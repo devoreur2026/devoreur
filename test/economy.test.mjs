@@ -276,5 +276,23 @@ section('pot rollover');
   ok(b.ledger.verifyIntegrity(), 'ledger integrity holds through a rollover');
 }
 
+/* ---------- abort keeps a carried-over pot (conserved, not stranded) ---------- */
+section('abort keeps the carried-over pot');
+{
+  var b = new Bank();
+  b.grant('A', 10000, 'gA');
+  b.enterRound('A', 'R1', 1000);                     // pot(R1) = 700
+  b.rollover('R1', 'R2');                            // pot -> R2 (700)
+  b.enterRound('A', 'R2', 1000);                     // pot(R2) = 1400
+  eq(b.wallet('A').credit, 8000, 'A paid both entries');
+  b.abortRound('R2');                                // last paid quits -> abort
+  eq(b.wallet('A').credit, 9000, 'R2 entry refunded');
+  eq(b.potBalance('R2'), 700, 'the carried-over 700 STAYS in the pot (not stranded)');
+  eq(b.potBalance('R1'), 0, 'nothing put back into the dead source round');
+  b.rollover('R2', 'R3');
+  eq(b.potBalance('R3'), 700, 'the carried pot continues forward to the next round');
+  ok(b.ledger.verifyIntegrity(), 'ledger integrity holds');
+}
+
 console.log('\n' + (failed === 0 ? '=== PASS ===' : '=== FAIL ===') + '  ' + passed + ' checks passed, ' + failed + ' failed');
 process.exit(failed === 0 ? 0 : 1);

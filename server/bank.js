@@ -77,7 +77,11 @@ export class Bank {
     var deltas = [];
     for (var i = 0; i < this.ledger.rows.length; i++){
       var r = this.ledger.rows[i];
-      if (r.round === roundId) deltas.push({ account: r.account, bucket: r.bucket, amount: -r.amount, type: 'refund' });
+      // Refund this round's entries + kills, but DON'T reverse a carried-over pot
+      // (rollover). Reversing it would strand that money in the dead source round;
+      // leaving it lets newRound roll it forward, conserving the pot.
+      if (r.round === roundId && r.type !== 'rollover_in' && r.type !== 'rollover_out')
+        deltas.push({ account: r.account, bucket: r.bucket, amount: -r.amount, type: 'refund' });
     }
     if (!deltas.length) return { ok: true, empty: true };
     this.ledger.post(idem, deltas, this._meta({ round: roundId, counterparty: 'abort' }));

@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "node server/index.js",
-    "test": "node test/economy.test.mjs && node test/round-economy.test.mjs && node test/fireball.test.mjs && node test/health.test.mjs && node test/payments.test.mjs && node test/payments-ledger.test.mjs && node test/payments-flow.test.mjs && node test/payments-routes.test.mjs && node test/wallet-routes.test.mjs && node test/eaters.test.mjs && node test/kick.test.mjs && node test/sessions.test.mjs && node test/round-id.test.mjs && node test/potneg.test.mjs"
+    "test": "node test/economy.test.mjs && node test/round-economy.test.mjs && node test/fireball.test.mjs && node test/health.test.mjs && node test/payments.test.mjs && node test/payments-ledger.test.mjs && node test/payments-flow.test.mjs && node test/payments-routes.test.mjs && node test/wallet-routes.test.mjs && node test/eaters.test.mjs && node test/kick.test.mjs && node test/sessions.test.mjs && node test/round-id.test.mjs && node test/potneg.test.mjs && node test/entry-charge.test.mjs"
   },
   "engines": {
     "node": ">=18"
