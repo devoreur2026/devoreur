@@ -19,6 +19,7 @@ import { MSG, PHASE } from '../shared/protocol.js';
 import { Eaters } from './eaters.js';
 import { ServerPlayer } from './player.js';
 import { bank } from './bankInstance.js';
+import { randomUUID } from 'crypto';
 
 var nextPlayerId = 1;
 
@@ -26,6 +27,12 @@ export class Room {
   constructor(name, bankRef){
     this.name = name;
     this.bank = bankRef || bank;
+    // Unique per room instance -> round ids NEVER collide across server restarts
+    // (a fresh process makes a fresh room). Otherwise, with the durable ledger, a
+    // reused id (room-1#1) hits stale idempotency keys + a leftover pot balance
+    // and corrupts the economy: an entry gets silently skipped as a "duplicate",
+    // the pot isn't funded, and it can read wrong / negative.
+    this.uid = randomUUID().slice(0, 8);
     this.players = new Map();      // id -> ServerPlayer
     this.phase = PHASE.PLAYING;
     this.countdown = 0;
@@ -48,10 +55,11 @@ export class Room {
   gridB64(){ return Buffer.from(this.grid).toString('base64'); }
   roundMsg(){ return { t: MSG.ROUND, seed: this.seed, grid: this.gridB64(), treasure: this.treasureT }; }
   potBalance(){ return this.bank.potBalance(this.roundId); }
+  potDisplay(){ return Math.max(0, this.potBalance()); }   // never surface a negative pot
   price(){ return entryPrice(this.t); }
   entriesOpen(){ return this.phase === PHASE.PLAYING && entriesOpen(this.t); }
   roundInfo(){   // for the /api/round join-screen preview
-    return { price: this.price(), pot: this.potBalance(), elapsed: +this.t.toFixed(1),
+    return { price: this.price(), pot: this.potDisplay(), elapsed: +this.t.toFixed(1),
              limit: ROUND_LIMIT, open: this.entriesOpen(), paid: this.paidCount };
   }
   sendWallet(p){
@@ -118,7 +126,7 @@ export class Room {
     this.killSeq = 0; this.fbSeq = 0; this.fireballs = [];
 
     var prevRound = this.roundId;
-    this.roundId = this.name + '#' + (++this.roundCounter);
+    this.roundId = this.name + '#' + this.uid + '.' + (++this.roundCounter);   // unique across restarts
     this.rolledIn = prevRound ? this.bank.rollover(prevRound, this.roundId) : 0;   // carry an unclaimed pot
 
     this.broadcast(this.roundMsg());                 // maze first, then charge + spawn
@@ -298,7 +306,7 @@ export class Room {
     this.broadcast({
       t: MSG.ROUND_OVER,
       winnerId: winner ? winner.id : 0, winnerName: this.winnerName,
-      pot: pot, target: target, topup: topup, rolled: rolled,
+      pot: Math.max(0, pot), target: target, topup: topup, rolled: Math.max(0, rolled),
       paid: this.paidCount, bonus: bonusUnlocked(this.paidCount), players: summary
     });
   }
@@ -359,7 +367,7 @@ export class Room {
       players: players,
       eaters: this.eaters.snapshot(),
       econ: {
-        pot: this.potBalance(), paid: this.paidCount,
+        pot: this.potDisplay(), paid: this.paidCount,
         bonus: bonusUnlocked(this.paidCount), bonusPot: BONUS_POT,
         price: this.price(), elapsed: +this.t.toFixed(1), limit: ROUND_LIMIT, open: this.entriesOpen()
       },
