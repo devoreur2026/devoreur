@@ -65,6 +65,7 @@ function openWallet(){
   el('ovWallet').classList.remove('hide');
   if (document.exitPointerLock) document.exitPointerLock();
   refreshPanel(); net.requestHistory();
+  document.dispatchEvent(new Event('umbra-wallet-open'));   // let the payments UI refresh
 }
 function closeWallet(){ state.uiBusy = false; el('ovWallet').classList.add('hide'); }
 el('coinBtn').addEventListener('click', function(){ el('ovWallet').classList.contains('hide') ? openWallet() : closeWallet(); });

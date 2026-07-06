@@ -138,6 +138,20 @@
   #spectateBanner b{display:block;font-size:16px;letter-spacing:.34em;color:var(--gold);margin-bottom:8px}
   #spectateBanner.hide{display:none}
   @keyframes specpulse{0%,100%{border-color:rgba(255,206,107,.35)}50%{border-color:rgba(255,206,107,.85)}}
+  .cashTabs{display:flex;gap:6px;margin:6px 0}
+  .cashTab{flex:1;padding:7px;background:rgba(233,227,209,.08);border:1px solid rgba(233,227,209,.16);
+    color:var(--dim);border-radius:4px;cursor:pointer;font:inherit;letter-spacing:.08em}
+  .cashTab.on{color:var(--gold);border-color:rgba(255,206,107,.5)}
+  #cashSection .auth-input{margin:4px 0}
+  .attest{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--dim);margin:6px 0;cursor:pointer}
+  .payMsg{font-size:12px;color:var(--gold);min-height:1.1em;margin-top:6px;line-height:1.5}
+  .payHistory{margin-top:8px;max-height:130px;overflow:auto}
+  .payHistory .prow{display:flex;justify-content:space-between;align-items:center;gap:8px;
+    font-size:12px;padding:4px 0;border-top:1px solid rgba(233,227,209,.08)}
+  .payHistory .pst{color:var(--dim)}
+  .payHistory .pst.ok{color:#6ee7a8}.payHistory .pst.bad{color:#e8574a}.payHistory .pst.wait{color:#ffd166}
+  .payHistory .refresh{font-size:11px;color:var(--gold);cursor:pointer;background:none;
+    border:1px solid rgba(255,206,107,.4);border-radius:3px;padding:2px 7px}
   #coinBtn{pointer-events:auto;background:transparent;border:1px solid rgba(255,206,107,.35);
     color:var(--gold);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:13px;line-height:1}
   #coinBtn:hover{border-color:var(--gold);background:rgba(255,206,107,.08)}
@@ -283,6 +297,22 @@
     <button class="btn" id="shopBtn">Buy 10 fireballs · 100 CDF</button>
     <button class="btn hide" id="grantBtn">+ Test Credit (dev)</button>
   </div>
+
+  <div id="cashSection" class="hide">
+    <div class="eyebrow" style="color:var(--gold);margin-top:10px">Cash · real money (CDF)</div>
+    <div class="cashTabs">
+      <button class="cashTab on" id="tabDeposit">Deposit</button>
+      <button class="cashTab" id="tabWithdraw">Withdraw</button>
+    </div>
+    <select id="payProvider" class="auth-input"></select>
+    <input id="payPhone" class="auth-input" inputmode="tel" placeholder="mobile money number">
+    <input id="payAmount" class="auth-input" inputmode="numeric" placeholder="amount CDF">
+    <label id="attestRow" class="attest hide"><input type="checkbox" id="attestChk"> I confirm I am 18+ and accept the Terms.</label>
+    <button class="btn" id="payBtn">Deposit</button>
+    <div id="payMsg" class="payMsg"></div>
+    <div id="payHistory" class="payHistory"></div>
+  </div>
+
   <div class="walletHistory" id="walletHistory"></div>
   <button class="btn" id="walletClose">Close</button>
 </div>

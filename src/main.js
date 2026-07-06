@@ -16,6 +16,9 @@ import { updateHud } from './hud.js';
 import './game.js';       // registers server-event hooks + overlay buttons
 import './authui.js';     // start-overlay account UI (sign in / up / OTP / reset)
 import './economyui.js';  // wallet / shop / pot / kill feed / summary
+import { initPaymentsUi } from './paymentsui.js';   // deposit / withdraw (real money)
+
+initPaymentsUi();
 
 window.UMBRA = { net, player, state };   // dev handle for debugging/inspection
 
