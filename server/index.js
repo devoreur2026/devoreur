@@ -15,6 +15,7 @@ import { bank } from './bankInstance.js';
 import { initLedgerStore, ledgerPersistenceConfigured } from './ledgerStore.js';
 import { payments, paymentConfigObj, paymentStore, logPaymentStatus } from './paymentsInstance.js';
 import { makePaymentApi } from './paymentRoutes.js';
+import { initPaymentStore, paymentPersistenceConfigured } from './paymentStoreSupabase.js';
 
 var paymentApi = makePaymentApi({ payments: payments, store: paymentStore, config: paymentConfigObj, verifyToken: verifyToken });
 
@@ -161,8 +162,12 @@ if (ledgerPersistenceConfigured()){
   console.log('[ledger] in-memory only (set SUPABASE_SECRET_KEY to persist the ledger in Supabase).');
 }
 
-// payments status + reconciliation loop (only when actually enabled)
+// payments status + durable store + reconciliation loop (only when enabled)
 logPaymentStatus(paymentConfigObj);
+if (paymentConfigObj.enabled && paymentPersistenceConfigured()){
+  initPaymentStore(paymentStore)
+    .catch(function(e){ console.error('[payments] Supabase persistence FAILED to init — in-memory only (records lost on restart):', e && e.message); });
+}
 if (paymentConfigObj.ready){
   setInterval(function(){
     payments.reconcile().catch(function(e){ console.error('[payments reconcile]', e && e.message); });
