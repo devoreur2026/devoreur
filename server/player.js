@@ -18,9 +18,12 @@ function num(v, def){ return (typeof v === 'number' && isFinite(v)) ? v : def; }
 function clamp(v, lo, hi){ return v < lo ? lo : (v > hi ? hi : v); }
 
 export class ServerPlayer {
-  constructor(id, name, colorIndex, ws){
+  constructor(id, name, colorIndex, ws, account){
     this.id = id;
     this.name = name;
+    this.account = account || ('anon:' + id);   // Supabase user id -> wallet key
+    this.paid = false;                            // entered (paid) the current round?
+    this.throwCd = 0;                             // fireball cooldown timer
     this.color = PALETTE[colorIndex % PALETTE.length];
     this.ws = ws;
     this.x = 0; this.z = 0; this.yaw = 0;

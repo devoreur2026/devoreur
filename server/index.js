@@ -8,12 +8,15 @@ import { fileURLToPath } from 'url';
 import { WebSocketServer } from 'ws';
 import { Room } from './room.js';
 import { MAX_PLAYERS } from '../shared/config.js';
+import { DEV_GRANT } from '../shared/economy.js';
 import { MSG } from '../shared/protocol.js';
 import { verifyToken, authConfig, authConfigured } from './auth.js';
+import { bank } from './bankInstance.js';
 
 var __dirname = path.dirname(fileURLToPath(import.meta.url));
 var ROOT = path.resolve(__dirname, '..');   // project root (serves index.html, src/, shared/)
 var PORT = process.env.PORT || 5173;
+var DEV = process.env.UMBRA_DEV === '1';    // dev-only test-Credit grant
 
 if (!authConfigured()){
   console.error('\n[!] Supabase auth is NOT configured — nobody can play until you set env vars:');
@@ -81,7 +84,7 @@ wss.on('connection', (ws) => {
       verifyToken(msg.token).then((user) => {
         if (ws.readyState !== 1) return;             // client gave up while we verified
         room = assignRoom();
-        player = room.addPlayer(user.name, ws);
+        player = room.addPlayer(user.name, user.sub, ws);
         console.log('[join] "' + user.name + '" (' + user.email + ') -> ' + room.name + ' (' + room.size + '/' + MAX_PLAYERS + ')');
       }).catch((err) => {
         console.log('[join rejected] ' + (err && err.message ? err.message : err));
@@ -93,6 +96,32 @@ wss.on('connection', (ws) => {
 
     if (msg.t === MSG.INPUT && Array.isArray(msg.cmds) && msg.cmds.length <= 64){
       room.onInput(player, msg.cmds);
+      return;
+    }
+    if (msg.t === MSG.SHOP){
+      var s = bank.buyFireballs(player.account, 1, '' + msg.nonce);
+      room.sendWallet(player);
+      room.send(ws, { t: MSG.SHOP, ok: s.ok, reason: s.reason || null });
+      return;
+    }
+    if (msg.t === MSG.TRANSFER){
+      bank.transfer(player.account, msg.amount | 0, '' + msg.nonce);
+      room.sendWallet(player);
+      return;
+    }
+    if (msg.t === MSG.HISTORY){
+      room.send(ws, { t: MSG.HISTORY_DATA, rows: bank.history(player.account, 60) });
+      return;
+    }
+    if (msg.t === MSG.GRANT){
+      if (!DEV) return;                              // impossible in production
+      bank.grant(player.account, DEV_GRANT, 'grant:' + player.account + ':' + msg.nonce);
+      room.sendWallet(player);
+      return;
+    }
+    if (msg.t === MSG.THROW){
+      room.throwFireball(player, msg);               // validated server-side (fireball commit)
+      return;
     }
   });
 

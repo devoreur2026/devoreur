@@ -16,6 +16,12 @@ export class Bank {
   potBalance(roundId){ return this.ledger.balance(POT(roundId), CREDIT); }
   houseBalance(){ return this.ledger.balance(HOUSE, CREDIT); }
   auditRound(roundId){ return this.ledger.auditRound(roundId); }
+  // net coin change for an account within a round (for the summary screen)
+  roundNet(account, roundId){
+    var net = 0, rows = this.ledger.rows;
+    for (var i = 0; i < rows.length; i++) if (rows[i].round === roundId && rows[i].account === account) net += rows[i].amount;
+    return net;
+  }
   _meta(m){ m = m || {}; m.ts = Date.now(); return m; }
 
   // dev-only: mint test Credit into an account (gated by the caller)
