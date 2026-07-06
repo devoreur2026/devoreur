@@ -199,14 +199,19 @@ net.on('authError', function(m){
   showErr((m && m.message) || 'Could not join — sign in again.');
 });
 
-// the socket dropped while we were entering/playing -> don't hang on ENTERING
+// The socket closed. Either the round ended (the server returns EVERYONE to the
+// entrance to rejoin) or we dropped. Return to the home screen cleanly; only
+// surface an error for an unexpected mid-game drop, not a clean round-end kick.
 net.on('close', function(){
-  if (state.phase !== 'playing'){
-    clearEnterTimer();
-    document.getElementById('ovStart').classList.remove('hide');
-    resetPlay();
-    if (auth.user()){ showReady(); showErr('Lost connection to the server — retry.'); }
-  }
+  clearEnterTimer();
+  var droppedMidGame = state.phase === 'playing';
+  document.getElementById('ovStart').classList.remove('hide');
+  document.getElementById('ovWin').classList.add('hide');
+  document.getElementById('ovDeath').classList.add('hide');
+  state.phase = 'menu';
+  resetPlay();
+  if (auth.user()) showReady();
+  showErr(droppedMidGame ? 'Lost connection to the server — retry.' : '');
 });
 
 // a server-event handler threw -> surface it instead of an infinite ENTERING

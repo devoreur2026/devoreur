@@ -148,6 +148,18 @@ export class Room {
   }
   anyPaidConnected(){ for (var p of this.players.values()) if (p.paid) return true; return false; }
 
+  // When a round ends, everyone is returned to the entrance: close every
+  // connection and empty the room. A fresh round only fills up as players
+  // reconnect and pay in again. (Runs during COUNTDOWN, so removePlayer's
+  // last-paid-leaves refund path doesn't fire.)
+  kickAll(){
+    for (var p of this.players.values()){
+      try { if (p.ws) p.ws.close(); } catch (e) {}
+    }
+    this.players.clear();
+    this.paidCount = 0;
+  }
+
   onInput(p, cmds){
     if (this.phase !== PHASE.PLAYING) return;
     p.applyCommands(this.maze, cmds, Date.now() / 1000);
@@ -298,7 +310,7 @@ export class Room {
 
     if (this.phase === PHASE.COUNTDOWN){
       this.countdown -= dt;
-      if (this.countdown <= 0){ this.newRound(); }
+      if (this.countdown <= 0){ this.kickAll(); this.newRound(); }   // round over -> everyone rejoins
       this.broadcastState();
       return;
     }
