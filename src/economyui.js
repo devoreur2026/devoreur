@@ -28,8 +28,8 @@ net.on('state', function(){
   el('entryVal').textContent = e.open ? ('ENTRY ' + (e.price || 0)) : 'ENTRIES CLOSED';
   el('entryVal').className = e.open ? '' : 'locked';
   var bv = el('bonusVal');
-  if (e.paid >= 5){ bv.textContent = 'BONUS unlocked'; bv.className = 'unlocked'; }
-  else { bv.textContent = 'BONUS 🔒 ' + (e.paid || 0) + '/5'; bv.className = 'locked'; }
+  bv.textContent = 'BONUS ' + (e.bonusPot || 15000);   // guaranteed prize floor, always on
+  bv.className = 'unlocked';
   var tEl = document.getElementById('timer');
   if (tEl) tEl.style.color = e.open ? '' : '#e8574a';   // round timer reddens once entries close
 

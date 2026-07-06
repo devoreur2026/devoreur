@@ -114,7 +114,7 @@ export class Bank {
     return { ok: true, taken: taken, toHouse: s.house, toPot: s.pot };
   }
 
-  // winner claims the pot; 5+ paid players guarantees BONUS_POT (house tops up)
+  // winner claims the pot, guaranteed at least BONUS_POT every round (house tops up)
   payout(winner, roundId, paidPlayers){
     var idem = 'payout:' + roundId;
     if (this.ledger.has(idem)) return { ok: true, idempotent: true };

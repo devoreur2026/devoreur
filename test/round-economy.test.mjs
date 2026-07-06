@@ -42,9 +42,9 @@ console.log('— open entry: funded players enter on join; pot / eater-kill / pa
   eq(B.health, MAX_HEALTH, 'respawn restores full health');
 
   room.endRound(A);
-  eq(bank.wallet('A').earnings, 1525, 'winner earnings = pot (<5)');
+  eq(bank.wallet('A').earnings, BONUS_POT, 'winner gets the guaranteed bonus (pot 1525 < 15000)');
   var ro = wa.last('roundOver');
-  eq(ro.pot, 1525, 'summary pot'); eq(ro.target, 1525, 'payout'); eq(ro.rolled, 0, 'nothing rolls over on a win');
+  eq(ro.pot, 1525, 'summary pot'); eq(ro.target, BONUS_POT, 'payout is the bonus floor'); eq(ro.rolled, 0, 'nothing rolls over on a win');
   ok(ro.players.every(function(p){ return typeof p.entry === 'number'; }), 'summary lists each entry price');
   eq(bank.auditRound(room.roundId), 0, 'round audit nets to zero');
 }
@@ -92,21 +92,21 @@ console.log('— entries lock at 8:00; latecomer waits for next round');
   eq(bank.wallet('X').credit, 5000, 'not charged during lockout');
 }
 
-console.log('— 5+ bonus top-up (early + late buy-ins all count)');
+console.log('— guaranteed bonus top-up (always on, any player count)');
 {
   var bank = new Bank();
   var room = new Room('t', bank); clearInterval(room.timer);
-  var ids = ['A', 'B', 'C', 'D', 'E'];
+  var ids = ['A', 'B', 'C'];                          // only 3 — bonus still applies
   ids.forEach(function(a){ bank.grant(a, 5000, 'g' + a); });
   var ws = {}; ids.forEach(function(a){ ws[a] = mkws(); });
   var players = {};
   ids.forEach(function(a){ players[a] = room.addPlayer(a, a, ws[a]); });
-  eq(room.paidCount, 5, 'five paid players');
+  eq(room.paidCount, 3, 'three paid players');
   var houseBefore = bank.houseBalance();
   room.endRound(players['A']);
-  eq(bank.wallet('A').earnings, BONUS_POT, 'winner guaranteed 10000');
+  eq(bank.wallet('A').earnings, BONUS_POT, 'winner guaranteed 15000 with only 3 players');
   var ro = ws['A'].last('roundOver');
-  eq(ro.topup, BONUS_POT - 3500, 'house tops up 6500'); ok(ro.bonus, 'bonus flagged');
+  eq(ro.topup, BONUS_POT - 2100, 'house tops up the gap (12900)'); ok(ro.bonus, 'bonus always flagged');
   eq(bank.houseBalance(), houseBefore - ro.topup, 'house paid the top-up');
   eq(bank.auditRound(room.roundId), 0, 'audit zero');
 }

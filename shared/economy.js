@@ -25,8 +25,8 @@ export var ENTRY_CLOSE = 960;       // seconds; entries lock 4 min before the li
 export var KILL_PENALTY = 250;      // victim loses up to this from Credit (never negative)
 export var FIREBALL_KILLER_SHARE = 0.70;  // of the taken amount -> killer EARNINGS, rest -> pot
 export var EATER_HOUSE_SHARE = 0.50;      // of the taken amount -> house, rest -> pot
-export var BONUS_MIN_PLAYERS = 5;   // 5+ paid players unlocks the guaranteed bonus
-export var BONUS_POT = 10000;       // winner gets max(pot, BONUS_POT); house tops up the gap
+export var BONUS_POT = 15000;       // guaranteed prize floor every round: winner gets
+                                    // max(pot, BONUS_POT); house tops up the gap. Always on.
 
 // shop / fireballs
 export var FIREBALL_PACK = 10;      // sold in packs of 10
@@ -66,8 +66,9 @@ export function splitEaterKill(taken){
   var house = Math.round(taken * EATER_HOUSE_SHARE);
   return { house: house, pot: taken - house };
 }
-// what the winner receives from a round with `paidPlayers` paid entries
+// The winner always gets at least BONUS_POT — the bonus is on every round, no
+// minimum player count. (paidPlayers is unused now; kept for call-site stability.)
 export function winnerPayout(pot, paidPlayers){
-  return paidPlayers >= BONUS_MIN_PLAYERS ? Math.max(pot, BONUS_POT) : pot;
+  return Math.max(pot, BONUS_POT);
 }
-export function bonusUnlocked(paidPlayers){ return paidPlayers >= BONUS_MIN_PLAYERS; }
+export function bonusUnlocked(paidPlayers){ return true; }
