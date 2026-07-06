@@ -158,7 +158,6 @@ export var net = {
   throwFireball: function(yaw){ this.send({ t: MSG.THROW, id: this.nonce(), yaw: yaw }); },
   buyFireballs: function(){ this.send({ t: MSG.SHOP, packs: 1, nonce: this.nonce() }); },
   transfer: function(amount){ this.send({ t: MSG.TRANSFER, amount: amount, nonce: this.nonce() }); },
-  grantDev: function(){ this.send({ t: MSG.GRANT, nonce: this.nonce() }); },
   requestHistory: function(){ this.send({ t: MSG.HISTORY }); },
 
   // find my own authoritative snapshot in the latest STATE

@@ -34,18 +34,18 @@ console.log('— config is public; money endpoints need a session');
 {
   var c = mkApi();
   eq((await call(c.api, 'GET', '/api/pay/config')).json.enabled, true, 'config enabled');
-  eq((await call(c.api, 'POST', '/api/pay/deposit', { body: { amount: 1000, provider: 'simulator', phone: '0810000000' } })).code, 401, 'no token -> 401');
+  eq((await call(c.api, 'POST', '/api/pay/deposit', { body: { amount: 1000, provider: 'vodacom', phone: '0810000000' } })).code, 401, 'no token -> 401');
   eq((await call(c.api, 'POST', '/api/pay/deposit', { token: 'bad', body: {} })).code, 401, 'bad token -> 401');
 }
 
-console.log('— attestation gate, then a simulator deposit through the route');
+console.log('— attestation gate, then a direct-success deposit through the route');
 {
   var c = mkApi();
-  eq((await call(c.api, 'POST', '/api/pay/deposit', { token: 'good', body: { amount: 2000, provider: 'simulator', phone: '0810000000' } })).json.reason, 'attestation_required', 'blocked before attesting');
+  eq((await call(c.api, 'POST', '/api/pay/deposit', { token: 'good', body: { amount: 2000, provider: 'vodacom', phone: '0810000000' } })).json.reason, 'attestation_required', 'blocked before attesting');
   var att = await call(c.api, 'POST', '/api/pay/attest', { token: 'good', body: { accept: true } });
   eq(att.code, 200, 'attest ok'); ok(att.json.attested, 'attested');
   c.client.q.push({ data: { provider_result: { code: -8888 }, status: 2 } });   // simulator success
-  var dep = await call(c.api, 'POST', '/api/pay/deposit', { token: 'good', body: { amount: 2000, provider: 'simulator', phone: '0810000000' } });
+  var dep = await call(c.api, 'POST', '/api/pay/deposit', { token: 'good', body: { amount: 2000, provider: 'vodacom', phone: '0810000000' } });
   eq(dep.code, 200, 'deposit accepted');
   eq(c.bank.wallet('A').credit, 2000, 'Credit applied via the route');
   var me = await call(c.api, 'GET', '/api/pay/me', { token: 'good' });

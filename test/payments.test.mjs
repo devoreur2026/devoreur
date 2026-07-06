@@ -69,7 +69,8 @@ console.log('— amount formatting + provider lookup + statuses');
 {
   eq(formatAmount(1000), '1000.00', 'integer CDF -> two decimals');
   eq(formatAmount(5000), '5000.00', 'formats 5000');
-  eq(providerByKey('simulator').id, 14, 'simulator id 14');
+  eq(providerByKey('airtel').id, 17, 'airtel id 17');
+  ok(!providerByKey('simulator'), 'no simulator provider selectable in production');
   eq(providerById(9).key, 'vodacom', 'id 9 -> vodacom');
   eq(STATUS.SUCCESS, 2, 'success is status 2');
 }

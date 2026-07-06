@@ -72,7 +72,6 @@ el('coinBtn').addEventListener('click', function(){ el('ovWallet').classList.con
 el('walletClose').addEventListener('click', closeWallet);
 el('xferBtn').addEventListener('click', function(){ var a = parseInt(el('xferAmt').value, 10) || 0; if (a > 0){ net.transfer(a); el('xferAmt').value = ''; } });
 el('shopBtn').addEventListener('click', function(){ this.disabled = true; net.buyFireballs(); var b = this; setTimeout(function(){ b.disabled = false; }, 400); });
-el('grantBtn').addEventListener('click', function(){ net.grantDev(); });
 
 net.on('history', function(rows){
   var h = el('walletHistory'); h.innerHTML = '';
@@ -86,11 +85,7 @@ net.on('history', function(rows){
   if (!rows.length) h.innerHTML = '<div class="row"><span>no transactions yet</span><span></span></div>';
 });
 
-/* ---- dev grant button + mobile fire button ---- */
-fetch('/api/config').then(function(r){ return r.json(); }).then(function(c){
-  if (c && c.dev) el('grantBtn').classList.remove('hide');
-}).catch(function(){});
-
+/* ---- mobile fire button ---- */
 if (window.matchMedia && window.matchMedia('(pointer:coarse)').matches){
   var fb = el('fireBtn');
   fb.classList.remove('hide');

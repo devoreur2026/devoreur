@@ -50,7 +50,7 @@ var server = http.createServer(async (req, res) => {
   if (urlPath === '/api/config'){
     var cfg = authConfig();
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
-    res.end(JSON.stringify({ supabaseUrl: cfg.url || null, supabaseAnonKey: cfg.anonKey || null, dev: DEV }));
+    res.end(JSON.stringify({ supabaseUrl: cfg.url || null, supabaseAnonKey: cfg.anonKey || null }));
     return;
   }
 

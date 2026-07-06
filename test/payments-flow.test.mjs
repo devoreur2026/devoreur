@@ -34,19 +34,19 @@ function seedEarnings(bank, account, amt){
 console.log('— gates: disabled + attestation required');
 {
   var c = ctx({ ready: false });
-  var r = await c.pay.startDeposit('A', { amount: 1000, provider: 'simulator', phone: '0810000000' });
+  var r = await c.pay.startDeposit('A', { amount: 1000, provider: 'vodacom', phone: '0810000000' });
   eq(r.reason, 'payments_disabled', 'off when not ready');
   var c2 = ctx();
-  var r2 = await c2.pay.startDeposit('A', { amount: 1000, provider: 'simulator', phone: '0810000000' });
+  var r2 = await c2.pay.startDeposit('A', { amount: 1000, provider: 'vodacom', phone: '0810000000' });
   eq(r2.reason, 'attestation_required', 'blocked without 18+/terms attestation');
 }
 
-console.log('— deposit happy path via simulator (direct success, no callback)');
+console.log('— deposit happy path (direct-response success, no callback)');
 {
   var c = ctx();
   c.store.setCompliance('A', '1');
-  c.client.q.deposit.push({ data: { provider_result: { code: -8888 }, status: 2 } });   // simulator success
-  var r = await c.pay.startDeposit('A', { amount: 2000, provider: 'simulator', phone: '0810000000' });
+  c.client.q.deposit.push({ data: { provider_result: { code: -8888 }, status: 2 } });   // direct-response success
+  var r = await c.pay.startDeposit('A', { amount: 2000, provider: 'vodacom', phone: '0810000000' });
   ok(r.ok, 'deposit accepted');
   eq(c.bank.wallet('A').credit, 2000, 'Credit added exactly once');
   eq(c.store.get(r.order_id).status, 2, 'record marked success');
