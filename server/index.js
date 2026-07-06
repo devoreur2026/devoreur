@@ -11,6 +11,7 @@ import { MAX_PLAYERS } from '../shared/config.js';
 import { DEV_GRANT, ENTRY_BASE, ROUND_LIMIT } from '../shared/economy.js';
 import { MSG } from '../shared/protocol.js';
 import { verifyToken, authConfig, authConfigured } from './auth.js';
+import { makeSessions, claimSession, releaseSession, DISPLACED_CODE } from './sessions.js';
 import { bank } from './bankInstance.js';
 import { initLedgerStore, ledgerPersistenceConfigured } from './ledgerStore.js';
 import { payments, paymentConfigObj, paymentStore, logPaymentStatus } from './paymentsInstance.js';
@@ -91,9 +92,11 @@ function rejectAuth(ws, message){
   try { ws.close(); } catch (e) {}
 }
 
+var sessions = makeSessions();   // one active session per account (anti-duplicate + single device)
+
 var wss = new WebSocketServer({ server: server, path: '/ws' });
 wss.on('connection', (ws) => {
-  var room = null, player = null, joining = false;
+  var room = null, player = null, account = null, joining = false;
 
   ws.on('message', (buf) => {
     var msg;
@@ -105,8 +108,15 @@ wss.on('connection', (ws) => {
       joining = true;
       verifyToken(msg.token).then((user) => {
         if (ws.readyState !== 1) return;             // client gave up while we verified
+        account = user.sub;
         room = assignRoom();
-        player = room.addPlayer(user.name, user.sub, ws);
+        player = room.addPlayer(user.name, account, ws);
+        // one session per account: a new join takes over; displace any earlier one
+        claimSession(sessions, account, { ws: ws, room: room, player: player }, function(prev){
+          try { prev.room.removePlayer(prev.player.id); } catch (e) {}   // remove the stale duplicate
+          try { prev.ws.close(DISPLACED_CODE, 'displaced'); } catch (e) {}
+          console.log('[displaced] "' + user.name + '" took over from an earlier session');
+        });
         console.log('[join] "' + user.name + '" (' + user.email + ') -> ' + room.name + ' (' + room.size + '/' + MAX_PLAYERS + ')');
       }).catch((err) => {
         console.log('[join rejected] ' + (err && err.message ? err.message : err));
@@ -148,9 +158,14 @@ wss.on('connection', (ws) => {
   });
 
   ws.on('close', () => {
-    if (room && player){
-      room.removePlayer(player.id);
-      console.log('[left] "' + player.name + '" (' + room.size + ' left in ' + room.name + ')');
+    // only clean up if THIS socket is still the active session for the account
+    // (a displaced socket's late close must not remove the new player)
+    if (room && player && account){
+      var released = releaseSession(sessions, account, ws);
+      if (released){
+        room.removePlayer(player.id);
+        console.log('[left] "' + player.name + '" (' + room.size + ' left in ' + room.name + ')');
+      }
     }
   });
   ws.on('error', () => {});

@@ -202,8 +202,9 @@ net.on('authError', function(m){
 // The socket closed. Either the round ended (the server returns EVERYONE to the
 // entrance to rejoin) or we dropped. Return to the home screen cleanly; only
 // surface an error for an unexpected mid-game drop, not a clean round-end kick.
-net.on('close', function(){
+net.on('close', function(ev){
   clearEnterTimer();
+  var displaced = ev && ev.code === 4001;             // took over by another device/browser
   var droppedMidGame = state.phase === 'playing';
   document.getElementById('ovStart').classList.remove('hide');
   document.getElementById('ovWin').classList.add('hide');
@@ -211,7 +212,9 @@ net.on('close', function(){
   state.phase = 'menu';
   resetPlay();
   if (auth.user()) showReady();
-  showErr(droppedMidGame ? 'Lost connection to the server — retry.' : '');
+  if (displaced) showErr('You are now playing on another device or browser — this session ended.');
+  else if (droppedMidGame) showErr('Lost connection to the server — retry.');
+  else showErr('');
 });
 
 // a server-event handler threw -> surface it instead of an infinite ENTERING
