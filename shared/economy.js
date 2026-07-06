@@ -13,9 +13,12 @@ export var HOUSE = 'house';
 export var MINT = 'mint';           // external money source/sink (grants, future deposits)
 export function POT(roundId){ return 'pot:' + roundId; }
 
-// round economy
-export var ENTRY_FEE = 1000;        // CDF from Credit to enter a paid round
+// round economy — OPEN MAZE with a rising entry price
+export var ENTRY_BASE = 1000;       // CDF base entry
+export var ENTRY_PER_MINUTE = 50;   // + this per full minute since the round started
 export var HOUSE_RAKE = 0.30;       // 30% of each entry -> house, rest -> pot
+export var ROUND_LIMIT = 600;       // seconds; Heart unclaimed at the limit -> pot rolls over
+export var ENTRY_CLOSE = 480;       // seconds; entries lock at 8:00 (arrivals wait for next round)
 export var KILL_PENALTY = 250;      // victim loses up to this from Credit (never negative)
 export var FIREBALL_KILLER_SHARE = 0.70;  // of the taken amount -> killer EARNINGS, rest -> pot
 export var EATER_HOUSE_SHARE = 0.50;      // of the taken amount -> house, rest -> pot
@@ -37,9 +40,16 @@ export var FIREBALL_FLARE = 1.4;        // seconds a thrower is "loud" to eaters
 export var DEV_GRANT = 5000;
 
 /* ---- pure split helpers: parts always sum to the whole ---- */
-export function splitEntry(fee){
-  var house = Math.round(fee * HOUSE_RAKE);
-  return { house: house, pot: fee - house };
+// Entry price rises 50 CDF per full minute since the round started.
+//   0:00–0:59 -> 1000, 1:00 -> 1050, 5:00 -> 1250, etc.
+export function entryPrice(roundElapsedSeconds){
+  var minutes = Math.floor(Math.max(0, roundElapsedSeconds) / 60);
+  return ENTRY_BASE + ENTRY_PER_MINUTE * minutes;
+}
+export function entriesOpen(roundElapsedSeconds){ return roundElapsedSeconds < ENTRY_CLOSE; }
+export function splitEntry(price){
+  var house = Math.round(price * HOUSE_RAKE);
+  return { house: house, pot: price - house };
 }
 // amount actually taken from a victim's Credit (never more than they have)
 export function killTaken(victimCredit){

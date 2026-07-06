@@ -1,7 +1,7 @@
 // Unit tests for every economy path. Run: node test/economy.test.mjs
 import { Bank } from '../server/bank.js';
 import {
-  CREDIT, EARNINGS, HOUSE, POT, ENTRY_FEE, KILL_PENALTY, BONUS_POT,
+  CREDIT, EARNINGS, HOUSE, POT, ENTRY_BASE, ENTRY_PER_MINUTE, entryPrice, KILL_PENALTY, BONUS_POT,
   FIREBALL_PACK, FIREBALL_PACK_PRICE
 } from '../shared/economy.js';
 
@@ -32,18 +32,18 @@ section('entry');
 {
   var b = new Bank();
   b.grant('A', 5000, 'gA');
-  var r = b.enterRound('A', 'r1');
+  var r = b.enterRound('A', 'r1', ENTRY_BASE);
   ok(r.ok, 'entry succeeds when affordable');
   eq(b.wallet('A').credit, 4000, 'entry debits 1000');
   eq(b.houseBalance(), 300, 'rake is 30% (300)');
   eq(b.potBalance('r1'), 700, 'pot gets 70% (700)');
-  eq(300 + 700, ENTRY_FEE, 'split sums to the fee');
-  var r2 = b.enterRound('A', 'r1');               // idempotent
+  eq(300 + 700, ENTRY_BASE, 'split sums to the fee');
+  var r2 = b.enterRound('A', 'r1', ENTRY_BASE);               // idempotent
   ok(r2.idempotent, 'entry is idempotent');
   eq(b.wallet('A').credit, 4000, 'no double charge on re-entry');
   // cannot afford
   b.grant('P', 500, 'gP');
-  var r3 = b.enterRound('P', 'r1');
+  var r3 = b.enterRound('P', 'r1', ENTRY_BASE);
   ok(!r3.ok && r3.reason === 'insufficient', 'entry blocked when credit < fee');
   eq(b.wallet('P').credit, 500, 'blocked entry took nothing');
   invariants(b, 'r1');
@@ -99,7 +99,7 @@ section('eater kill');
 section('payout <5 players');
 {
   var b = new Bank();
-  ['A', 'B', 'C'].forEach(function(p, i){ b.grant(p, 5000, 'g' + p); b.enterRound(p, 'r1'); });
+  ['A', 'B', 'C'].forEach(function(p, i){ b.grant(p, 5000, 'g' + p); b.enterRound(p, 'r1', ENTRY_BASE); });
   var pot = b.potBalance('r1');
   eq(pot, 2100, 'pot = 3 * 700');
   var pay = b.payout('A', 'r1', 3);
@@ -114,7 +114,7 @@ section('payout <5 players');
 section('payout 5+ players (bonus + top-up)');
 {
   var b = new Bank();
-  ['A', 'B', 'C', 'D', 'E'].forEach(function(p){ b.grant(p, 5000, 'g' + p); b.enterRound(p, 'r1'); });
+  ['A', 'B', 'C', 'D', 'E'].forEach(function(p){ b.grant(p, 5000, 'g' + p); b.enterRound(p, 'r1', ENTRY_BASE); });
   var pot = b.potBalance('r1');
   eq(pot, 3500, 'pot = 5 * 700');
   var houseBefore = b.houseBalance();
@@ -130,7 +130,7 @@ section('payout 5+ players (bonus + top-up)');
   // 5+ but pot already exceeds the bonus => winner gets the (bigger) pot, no top-up
   var b2 = new Bank();
   var many = 20;                                    // 20 * 700 = 14000 pot
-  for (var i = 0; i < many; i++){ var p = 'X' + i; b2.grant(p, 5000, 'g' + p); b2.enterRound(p, 'r2'); }
+  for (var i = 0; i < many; i++){ var p = 'X' + i; b2.grant(p, 5000, 'g' + p); b2.enterRound(p, 'r2', ENTRY_BASE); }
   var pot2 = b2.potBalance('r2');
   ok(pot2 > BONUS_POT, 'pot exceeds 10000 (got ' + pot2 + ')');
   var pay2 = b2.payout('X0', 'r2', many);
@@ -191,7 +191,7 @@ section('refund on abort');
 {
   var b = new Bank();
   b.grant('A', 5000, 'gA'); b.grant('B', 5000, 'gB');
-  b.enterRound('A', 'ra'); b.enterRound('B', 'ra');
+  b.enterRound('A', 'ra', ENTRY_BASE); b.enterRound('B', 'ra', ENTRY_BASE);
   b.killByFireball('B', 'A', 'ra', 'k1');           // mid-round kill
   ok(b.potBalance('ra') > 0, 'round has money in flight');
   var res = b.abortRound('ra');
@@ -212,7 +212,7 @@ section('full round audit');
 {
   var b = new Bank();
   var players = ['A', 'B', 'C', 'D', 'E', 'F'];
-  players.forEach(function(p){ b.grant(p, 5000, 'g' + p); b.enterRound(p, 'R'); });
+  players.forEach(function(p){ b.grant(p, 5000, 'g' + p); b.enterRound(p, 'R', ENTRY_BASE); });
   b.killByFireball('B', 'A', 'R', 'k1');
   b.killByEater('C', 'R', 'k2');
   b.killByFireball('D', 'A', 'R', 'k3');
@@ -223,6 +223,55 @@ section('full round audit');
   var neg = false;
   players.forEach(function(p){ if (b.wallet(p).credit < 0 || b.wallet(p).earnings < 0) neg = true; });
   ok(!neg, 'no player balance is ever negative');
+}
+
+/* ---------- rising entry price ---------- */
+section('rising entry price');
+{
+  eq(entryPrice(0), ENTRY_BASE, 'minute 0 = base (1000)');
+  eq(entryPrice(59), ENTRY_BASE, '0:59 still base');
+  eq(entryPrice(60), ENTRY_BASE + ENTRY_PER_MINUTE, '1:00 = 1050');
+  eq(entryPrice(300), ENTRY_BASE + 5 * ENTRY_PER_MINUTE, '5:00 = 1250');
+  // a late entry charges the higher price and still splits 30/70 exactly
+  var b = new Bank();
+  b.grant('L', 5000, 'gL');
+  var price = entryPrice(300);                       // 1250
+  var r = b.enterRound('L', 'rP', price);
+  eq(r.price, price, 'charged the late price');
+  eq(b.wallet('L').credit, 5000 - price, 'debited the late price');
+  eq(b.houseBalance(), Math.round(price * 0.30), 'rake = 30% of late price (375)');
+  eq(b.potBalance('rP'), price - Math.round(price * 0.30), 'pot = rest (875)');
+  eq(b.houseBalance() + b.potBalance('rP'), price, 'split sums to the late price');
+  invariants(b, 'rP');
+}
+
+/* ---------- pot rollover: unclaimed pot -> next round, audits stay zero ---------- */
+section('pot rollover');
+{
+  var b = new Bank();
+  b.grant('A', 5000, 'gA'); b.grant('B', 5000, 'gB');
+  b.enterRound('A', 'R1', ENTRY_BASE); b.enterRound('B', 'R1', ENTRY_BASE);
+  var potR1 = b.potBalance('R1');
+  eq(potR1, 1400, 'R1 pot = 1400 (no winner, time limit hit)');
+
+  var carried = b.rollover('R1', 'R2');             // R1 expired unclaimed
+  eq(carried, 1400, 'entire pot rolls over');
+  eq(b.potBalance('R1'), 0, 'R1 pot emptied');
+  eq(b.potBalance('R2'), 1400, "R2 starts with R1's pot (no extra house cut)");
+  eq(b.houseBalance(), 600, 'house unchanged by rollover (still just the rake)');
+  eq(b.auditRound('R1'), 0, 'expired round R1 still audits to zero');
+  eq(b.auditRound('R2'), 0, 'rollover legs net to zero within R2');
+
+  // play R2 to a win: pot = 1400 rolled + new entries, winner takes it, audit 0
+  b.enterRound('A', 'R2', ENTRY_BASE); b.enterRound('B', 'R2', ENTRY_BASE);
+  eq(b.potBalance('R2'), 1400 + 1400, 'R2 pot = rollover + new entries');
+  b.payout('A', 'R2', 2);
+  eq(b.wallet('A').earnings, 2800, 'winner takes the grown pot');
+  eq(b.potBalance('R2'), 0, 'R2 pot drained');
+  eq(b.auditRound('R2'), 0, 'R2 (rollover + entries + payout) nets to zero');
+  b.rollover('R1', 'R2');                            // idempotent
+  eq(b.potBalance('R2'), 0, 'rollover is idempotent');
+  ok(b.ledger.verifyIntegrity(), 'ledger integrity holds through a rollover');
 }
 
 console.log('\n' + (failed === 0 ? '=== PASS ===' : '=== FAIL ===') + '  ' + passed + ' checks passed, ' + failed + ' failed');

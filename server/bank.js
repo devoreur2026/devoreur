@@ -2,13 +2,13 @@
 // the shared economy rules. This is the ONLY place gameplay touches money.
 import {
   CREDIT, EARNINGS, HOUSE, MINT, POT,
-  ENTRY_FEE, FIREBALL_PACK, FIREBALL_PACK_PRICE,
+  FIREBALL_PACK, FIREBALL_PACK_PRICE,
   splitEntry, killTaken, splitFireballKill, splitEaterKill, winnerPayout
 } from '../shared/economy.js';
 import { Ledger } from './ledger.js';
 
 export class Bank {
-  constructor(ledger){ this.ledger = ledger || new Ledger(); }
+  constructor(ledger){ this.ledger = ledger || new Ledger(); this.rolled = {}; }
 
   wallet(account){ return this.ledger.wallet(account); }
   fireballs(account){ return this.ledger.fireballs(account); }
@@ -36,18 +36,38 @@ export class Bank {
     return { ok: true, wallet: this.wallet(account) };
   }
 
-  // charge the entry fee: 30% house rake, 70% to the round pot
-  enterRound(account, roundId){
+  // charge the (rising) entry price: 30% house rake, 70% to the round pot.
+  // Idempotent per (round, account) — a player pays once per round.
+  enterRound(account, roundId, price){
+    price = price | 0;
     var idem = 'entry:' + roundId + ':' + account;
     if (this.ledger.has(idem)) return { ok: true, idempotent: true, pot: this.potBalance(roundId) };
-    if (this.wallet(account).credit < ENTRY_FEE) return { ok: false, reason: 'insufficient' };
-    var s = splitEntry(ENTRY_FEE);
+    if (price <= 0) return { ok: false, reason: 'invalid' };
+    if (this.wallet(account).credit < price) return { ok: false, reason: 'insufficient', price: price };
+    var s = splitEntry(price);
     this.ledger.post(idem, [
-      { account: account, bucket: CREDIT, amount: -ENTRY_FEE, type: 'entry' },
+      { account: account, bucket: CREDIT, amount: -price, type: 'entry' },
       { account: HOUSE, bucket: CREDIT, amount: s.house, type: 'rake' },
       { account: POT(roundId), bucket: CREDIT, amount: s.pot, type: 'entry_pot' }
     ], this._meta({ round: roundId, counterparty: POT(roundId) }));
-    return { ok: true, pot: this.potBalance(roundId) };
+    return { ok: true, price: price, pot: this.potBalance(roundId) };
+  }
+
+  // Roll an unclaimed pot into the next round (no house cut). Both legs are
+  // tagged to the NEW round so both rounds' audits still net to zero:
+  //   old round: entries/kills already summed to 0 (rollover isn't tagged to it)
+  //   new round: (potOld -P) + (potNew +P) = 0, plus its own 0-sum txns.
+  rollover(fromRound, toRound){
+    var idem = 'rollover:' + toRound;
+    if (this.ledger.has(idem)) return this.rolled[toRound] || 0;
+    var P = this.potBalance(fromRound);
+    if (P <= 0){ this.rolled[toRound] = 0; return 0; }
+    this.ledger.post(idem, [
+      { account: POT(fromRound), bucket: CREDIT, amount: -P, type: 'rollover_out' },
+      { account: POT(toRound), bucket: CREDIT, amount: P, type: 'rollover_in' }
+    ], this._meta({ round: toRound, counterparty: 'rollover' }));
+    this.rolled[toRound] = P;
+    return P;
   }
 
   // abort: exactly reverse every row of the round -> everyone made whole, audit stays 0
