@@ -7,11 +7,11 @@
 // retry) is a no-op that returns the original result — no double-spend. Balances
 // are only ever changed here, alongside the matching append-only row, so the
 // invariant "balance == sum of that account's row deltas" holds by construction.
-import { HOUSE, MINT, CREDIT, EARNINGS } from '../shared/economy.js';
+import { HOUSE, MINT, GATEWAY, CREDIT, EARNINGS } from '../shared/economy.js';
 
 // Only these accounts may go negative (they represent the operator / external
 // money). Players and pots can never go below zero.
-function mayGoNegative(account){ return account === HOUSE || account === MINT; }
+function mayGoNegative(account){ return account === HOUSE || account === MINT || account === GATEWAY; }
 
 export class Ledger {
   constructor(){

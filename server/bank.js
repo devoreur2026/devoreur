@@ -1,7 +1,7 @@
 // Domain money operations, each atomic + idempotent, built on the ledger and
 // the shared economy rules. This is the ONLY place gameplay touches money.
 import {
-  CREDIT, EARNINGS, HOUSE, MINT, POT,
+  CREDIT, EARNINGS, HOLD, HOUSE, MINT, GATEWAY, POT,
   FIREBALL_PACK, FIREBALL_PACK_PRICE,
   splitEntry, killTaken, splitFireballKill, splitEaterKill, winnerPayout
 } from '../shared/economy.js';
@@ -165,6 +165,70 @@ export class Bank {
       { account: account, bucket: EARNINGS, amount: -amount, type: 'transfer_out' },
       { account: account, bucket: CREDIT, amount: amount, type: 'transfer_in' }
     ], this._meta({ counterparty: account }));
+    return { ok: true, wallet: this.wallet(account) };
+  }
+
+  /* ---------- real-money payments (gateway) ----------
+     Every leg is a balanced double-entry against the external GATEWAY account,
+     idempotent per order_id, so a retried callback or status poll can never
+     double-credit / double-charge. NONE of these are called from client input;
+     only from a signature-verified callback or a status poll reporting success. */
+
+  held(account){ return this.ledger.balance(account, HOLD); }
+  gatewayBalance(){ return this.ledger.balance(GATEWAY, CREDIT); }
+
+  // DEPOSIT success: real money in -> player Credit. Called ONCE per order, only
+  // after a verified success. Idempotent on order_id.
+  creditDeposit(account, amount, orderId){
+    amount = amount | 0;
+    var idem = 'dep:' + orderId;
+    if (this.ledger.has(idem)) return { ok: true, idempotent: true, wallet: this.wallet(account) };
+    if (amount <= 0) return { ok: false, reason: 'invalid' };
+    this.ledger.post(idem, [
+      { account: GATEWAY, bucket: CREDIT, amount: -amount, type: 'deposit' },
+      { account: account, bucket: CREDIT, amount: amount, type: 'deposit' }
+    ], this._meta({ counterparty: GATEWAY }));
+    return { ok: true, wallet: this.wallet(account) };
+  }
+
+  // WITHDRAWAL step 1 — move Earnings -> hold IMMEDIATELY (atomic; prevents
+  // double-spend while the payout is in flight). Idempotent on order_id.
+  holdWithdrawal(account, amount, orderId){
+    amount = amount | 0;
+    var idem = 'wdhold:' + orderId;
+    if (this.ledger.has(idem)) return { ok: true, idempotent: true, wallet: this.wallet(account) };
+    if (amount <= 0) return { ok: false, reason: 'invalid' };
+    if (this.wallet(account).earnings < amount) return { ok: false, reason: 'insufficient' };
+    this.ledger.post(idem, [
+      { account: account, bucket: EARNINGS, amount: -amount, type: 'wd_hold' },
+      { account: account, bucket: HOLD, amount: amount, type: 'wd_hold' }
+    ], this._meta({ counterparty: GATEWAY }));
+    return { ok: true, wallet: this.wallet(account), held: this.held(account) };
+  }
+
+  // WITHDRAWAL success -> money leaves the system (hold -> gateway out).
+  completeWithdrawal(account, amount, orderId){
+    amount = amount | 0;
+    var idem = 'wddone:' + orderId;
+    if (this.ledger.has(idem)) return { ok: true, idempotent: true };
+    this.ledger.post(idem, [
+      { account: account, bucket: HOLD, amount: -amount, type: 'wd_paid' },
+      { account: GATEWAY, bucket: CREDIT, amount: amount, type: 'wd_paid' }
+    ], this._meta({ counterparty: GATEWAY }));
+    return { ok: true, wallet: this.wallet(account) };
+  }
+
+  // WITHDRAWAL failed/cancelled -> release the hold back to Earnings. Mutually
+  // exclusive with completeWithdrawal (the hold only holds `amount` once, so the
+  // ledger floor rejects doing both — defense in depth beyond the state machine).
+  releaseWithdrawal(account, amount, orderId){
+    amount = amount | 0;
+    var idem = 'wdrel:' + orderId;
+    if (this.ledger.has(idem)) return { ok: true, idempotent: true };
+    this.ledger.post(idem, [
+      { account: account, bucket: HOLD, amount: -amount, type: 'wd_release' },
+      { account: account, bucket: EARNINGS, amount: amount, type: 'wd_release' }
+    ], this._meta({ counterparty: GATEWAY }));
     return { ok: true, wallet: this.wallet(account) };
   }
 }

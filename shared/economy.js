@@ -7,10 +7,12 @@ export var COIN = 'CDF';
 // wallet buckets
 export var CREDIT = 'credit';       // spendable
 export var EARNINGS = 'earnings';   // winnings
+export var HOLD = 'hold';           // earnings held while a withdrawal is in flight
 
 // system accounts
 export var HOUSE = 'house';
-export var MINT = 'mint';           // external money source/sink (grants, future deposits)
+export var MINT = 'mint';           // external money source/sink (grants)
+export var GATEWAY = 'gateway';     // real-money in/out via the payment gateway (may go negative)
 export function POT(roundId){ return 'pot:' + roundId; }
 
 // round economy — OPEN MAZE with a rising entry price
