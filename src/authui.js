@@ -4,6 +4,7 @@
 import { auth } from './auth.js';
 import { enterMaze } from './game.js';
 import { net } from './net.js';
+import { state } from './state.js';
 
 function el(id){ return document.getElementById(id); }
 var errEl = el('authErr');
@@ -147,22 +148,60 @@ el('rsResend').onclick = function(){
 };
 
 /* ---------- ready / play / sign out ---------- */
-el('playBtn').onclick = function(){
+var enterTimer = null;
+function clearEnterTimer(){ if (enterTimer){ clearTimeout(enterTimer); enterTimer = null; } }
+function startPlay(){
   clearErr();
   var b = el('playBtn'); b.disabled = true; b.textContent = 'Entering…';
+  console.info('[join] entering the maze…');
   auth.accessToken().then(function(token){
     if (!token){ resetPlay(); showErr('Your session expired — please sign in again.'); show('signin'); return; }
+    clearEnterTimer();
+    // safety net: if we don't actually enter within 10s, stop hanging and offer a retry
+    enterTimer = setTimeout(function(){
+      console.warn('[join] timed out after 10s waiting for the server');
+      enterTimer = null;
+      var btn = el('playBtn'); btn.disabled = false; btn.textContent = 'Retry';
+      showErr("Connection failed — the server didn't respond. Check your connection and retry.");
+      if (document.exitPointerLock) document.exitPointerLock();
+    }, 10000);
     enterMaze(token);
   });
-};
-el('signoutLink').onclick = function(){ auth.signOut(); show('signin'); };
+}
+el('playBtn').onclick = startPlay;
+el('signoutLink').onclick = function(){ clearEnterTimer(); auth.signOut(); show('signin'); };
+
+// we actually entered (game.js's 'round' handler ran) -> cancel the timeout
+net.on('round', function(){ clearEnterTimer(); });
 
 /* ---------- server rejected the join ---------- */
 net.on('authError', function(m){
+  clearEnterTimer();
   document.getElementById('ovStart').classList.remove('hide');
   showReady();
   showErr((m && m.message) || 'Could not join — sign in again.');
 });
+
+// the socket dropped while we were entering/playing -> don't hang on ENTERING
+net.on('close', function(){
+  if (state.phase !== 'playing'){
+    clearEnterTimer();
+    document.getElementById('ovStart').classList.remove('hide');
+    resetPlay();
+    if (auth.user()){ showReady(); showErr('Lost connection to the server — retry.'); }
+  }
+});
+
+// a server-event handler threw -> surface it instead of an infinite ENTERING
+net.onError = function(type, e){
+  if (state.phase !== 'playing'){
+    clearEnterTimer();
+    document.getElementById('ovStart').classList.remove('hide');
+    resetPlay();
+    showReady();
+    showErr('Something went wrong entering the maze (' + type + '). Please retry.');
+  }
+};
 
 resendLinks = [el('otpResend'), el('rsResend')];
 

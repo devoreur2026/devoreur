@@ -50,31 +50,52 @@ export var net = {
   _n: 0,
 
   _hooks: {},
-  on: function(type, fn){ this._hooks[type] = fn; },
-  _emit: function(type, m){ if (this._hooks[type]) this._hooks[type](m); },
+  onError: null,                     // set by the UI to surface a handler failure visibly
+  // Multiple modules subscribe to the same event — keep ALL of them, not just
+  // the last (a single-handler map silently dropped game.js's 'round'/'state').
+  on: function(type, fn){ (this._hooks[type] || (this._hooks[type] = [])).push(fn); },
+  _emit: function(type, m){
+    var hs = this._hooks[type];
+    if (!hs) return;
+    for (var i = 0; i < hs.length; i++){
+      try { hs[i](m); }
+      catch (e){
+        console.error('[net] handler for "' + type + '" threw:', e);
+        if (this.onError){ try { this.onError(type, e); } catch (e2) {} }   // don't hang silently
+      }
+    }
+  },
 
   connect: function(token){
     var self = this;
     var proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    console.info('[join] connecting to ' + proto + '://' + location.host + '/ws');
     this.ws = new WebSocket(proto + '://' + location.host + '/ws');
     this.ws.onopen = function(){
       self.connected = true;
+      console.info('[join] socket open → sending join');
       self.send({ t: MSG.JOIN, token: token });   // server verifies + derives the name
     };
     this.ws.onmessage = function(ev){ delayed(function(){ self._recv(ev.data); }); };
-    this.ws.onclose = function(){ self.connected = false; self._emit('close'); };
-    this.ws.onerror = function(){};
+    this.ws.onclose = function(ev){
+      self.connected = false;
+      console.info('[join] socket closed (code ' + (ev && ev.code) + ')');
+      self._emit('close', ev);
+    };
+    this.ws.onerror = function(e){ console.warn('[join] socket error', e); };
   },
 
   _recv: function(data){
     var m;
-    try { m = JSON.parse(data); } catch (e) { return; }
+    try { m = JSON.parse(data); } catch (e) { console.warn('[net] bad message', e); return; }
     switch (m.t){
       case MSG.AUTH_ERROR:
+        console.warn('[join] auth error: ' + m.message);
         this._emit('authError', m);
         break;
       case MSG.WELCOME:
         this.id = m.id; this.color = m.color; this.name = m.name;
+        console.info('[join] welcome id=' + m.id + ' name=' + m.name);
         this._emit('welcome', m);
         break;
       case MSG.ROUND:
@@ -83,6 +104,7 @@ export var net = {
         this.treasureT = m.treasure;
         this.startT = m.start;
         this.spectating = false;
+        console.info('[join] round received (grid ' + this.grid.length + ' cells) → entering');
         this._emit('round', m);
         break;
       case MSG.STATE:
