@@ -49,13 +49,13 @@ export var net = {
   on: function(type, fn){ this._hooks[type] = fn; },
   _emit: function(type, m){ if (this._hooks[type]) this._hooks[type](m); },
 
-  connect: function(name){
+  connect: function(token){
     var self = this;
     var proto = location.protocol === 'https:' ? 'wss' : 'ws';
     this.ws = new WebSocket(proto + '://' + location.host + '/ws');
     this.ws.onopen = function(){
       self.connected = true;
-      self.send({ t: MSG.JOIN, name: name });
+      self.send({ t: MSG.JOIN, token: token });   // server verifies + derives the name
     };
     this.ws.onmessage = function(ev){ delayed(function(){ self._recv(ev.data); }); };
     this.ws.onclose = function(){ self.connected = false; self._emit('close'); };
@@ -66,8 +66,11 @@ export var net = {
     var m;
     try { m = JSON.parse(data); } catch (e) { return; }
     switch (m.t){
+      case MSG.AUTH_ERROR:
+        this._emit('authError', m);
+        break;
       case MSG.WELCOME:
-        this.id = m.id; this.color = m.color;
+        this.id = m.id; this.color = m.color; this.name = m.name;
         this._emit('welcome', m);
         break;
       case MSG.ROUND:

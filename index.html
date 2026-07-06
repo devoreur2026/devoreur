@@ -71,11 +71,25 @@
     font-size:12px;letter-spacing:.42em;text-transform:uppercase;text-indent:.42em;
     transition:all .25s}
   .btn:hover{background:rgba(255,206,107,.08);box-shadow:0 0 34px rgba(255,206,107,.25);border-color:var(--gold)}
-  #nameInput{pointer-events:auto;margin-top:34px;display:block;width:300px;max-width:80vw;
-    background:rgba(233,227,209,.06);border:1px solid rgba(255,206,107,.35);color:var(--bone);
-    text-align:center;font-size:14px;letter-spacing:.16em;padding:13px 16px;outline:none}
-  #nameInput:focus{border-color:var(--gold)}
-  #nameInput::placeholder{color:#565b6e;letter-spacing:.12em}
+  /* ------- auth ------- */
+  #authBox{margin-top:30px;width:320px;max-width:86vw;display:flex;flex-direction:column;align-items:center}
+  .auth-err{color:#e8574a;font-size:12.5px;letter-spacing:.03em;line-height:1.5;margin-bottom:14px;max-width:320px}
+  .auth-err.hide{display:none}
+  .auth-panel{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%}
+  .auth-panel.hide{display:none}
+  .auth-input{pointer-events:auto;width:100%;background:rgba(233,227,209,.06);border:1px solid rgba(255,206,107,.3);
+    color:var(--bone);text-align:center;font-size:14px;letter-spacing:.06em;padding:12px 14px;outline:none}
+  .auth-input:focus{border-color:var(--gold)}
+  .auth-input::placeholder{color:#565b6e;letter-spacing:.06em}
+  .auth-input.code{letter-spacing:.5em;font-size:20px;font-variant-numeric:tabular-nums;text-indent:.5em}
+  #authBox .btn{margin-top:8px;padding:14px 40px}
+  #authBox .btn[disabled]{opacity:.5;pointer-events:none}
+  .auth-links{display:flex;gap:20px;margin-top:8px;flex-wrap:wrap;justify-content:center}
+  .auth-link{pointer-events:auto;cursor:pointer;font-size:11px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase}
+  .auth-link:hover{color:var(--ember)}
+  .auth-link.disabled{opacity:.4;pointer-events:none;cursor:default}
+  .auth-note{font-size:12.5px;color:#b9b4a3;line-height:1.6;letter-spacing:.03em;max-width:300px}
+  .auth-note b{color:var(--bone)}
   #gfx{margin-top:24px;display:flex;align-items:center;gap:9px}
   .gfxlabel{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:#565b6e;margin-right:2px}
   .gfxbtn{pointer-events:auto;background:transparent;border:1px solid rgba(233,227,209,.2);
@@ -108,7 +122,7 @@
 <div id="vig"></div><div id="danger"></div><div id="shield"></div><div id="flash"></div>
 
 <div id="hud">
-  <div id="topL" class="tag">Deaths<b id="deaths">0</b></div>
+  <div id="topL" class="tag">Deaths<b id="deaths">0</b><span id="whoami" style="margin-left:16px;color:var(--gold)"></span></div>
   <div id="topR"><span id="timer">00:00</span><button id="mute" title="sound">♪</button></div>
   <div id="cross"></div>
   <div id="stamWrap"><div id="stam"></div></div>
@@ -120,20 +134,69 @@
   <div class="eyebrow">A treasure hunt in the dark</div>
   <h1>UMBRA</h1>
   <div class="sub">the maze that eats light</div>
-  <p class="story">
-    Somewhere in this labyrinth burns <em>the Heart of the Maze</em>.
-    Your torch reaches only a few steps ahead. The <span class="k">Darkness&nbsp;Eaters</span>
-    drift through the corridors, keeping what is theirs — if one finds you, it will not miss.
-    Sprinting is loud. Beacons remember where you have been. Nothing else will.
-  </p>
-  <input id="nameInput" maxlength="16" placeholder="enter your name" autocomplete="off">
-  <button class="btn" id="startBtn">Enter the maze</button>
+
+  <div id="authBox">
+    <div id="authErr" class="auth-err hide"></div>
+
+    <!-- sign in -->
+    <div class="auth-panel" id="pSignin">
+      <input class="auth-input" id="siEmail" type="email" placeholder="email" autocomplete="username">
+      <input class="auth-input" id="siPass" type="password" placeholder="password" autocomplete="current-password">
+      <button class="btn" id="siBtn">Sign in</button>
+      <div class="auth-links">
+        <span class="auth-link" id="toSignup">Create account</span>
+        <span class="auth-link" id="toForgot">Forgot password?</span>
+      </div>
+    </div>
+
+    <!-- sign up -->
+    <div class="auth-panel hide" id="pSignup">
+      <input class="auth-input" id="suName" maxlength="16" placeholder="display name" autocomplete="nickname">
+      <input class="auth-input" id="suEmail" type="email" placeholder="email" autocomplete="email">
+      <input class="auth-input" id="suPass" type="password" placeholder="password (min 6)" autocomplete="new-password">
+      <button class="btn" id="suBtn">Create account</button>
+      <div class="auth-links"><span class="auth-link" id="toSignin">Have an account? Sign in</span></div>
+    </div>
+
+    <!-- verify signup OTP -->
+    <div class="auth-panel hide" id="pOtp">
+      <div class="auth-note">Enter the code we emailed to <b id="otpEmail"></b></div>
+      <input class="auth-input code" id="otpCode" inputmode="numeric" maxlength="10" placeholder="code" autocomplete="one-time-code">
+      <button class="btn" id="otpBtn">Verify &amp; play</button>
+      <div class="auth-links"><span class="auth-link" id="otpResend">Resend code</span><span class="auth-link" id="otpBack">Back</span></div>
+    </div>
+
+    <!-- forgot password -->
+    <div class="auth-panel hide" id="pForgot">
+      <div class="auth-note">We'll email you a code to reset your password.</div>
+      <input class="auth-input" id="fgEmail" type="email" placeholder="email" autocomplete="email">
+      <button class="btn" id="fgBtn">Send reset code</button>
+      <div class="auth-links"><span class="auth-link" id="fgBack">Back</span></div>
+    </div>
+
+    <!-- reset password with OTP -->
+    <div class="auth-panel hide" id="pReset">
+      <div class="auth-note">Enter the code we emailed to <b id="rsEmail"></b> and a new password.</div>
+      <input class="auth-input code" id="rsCode" inputmode="numeric" maxlength="10" placeholder="code" autocomplete="one-time-code">
+      <input class="auth-input" id="rsPass" type="password" placeholder="new password (min 6)" autocomplete="new-password">
+      <button class="btn" id="rsBtn">Set password &amp; play</button>
+      <div class="auth-links"><span class="auth-link" id="rsResend">Resend code</span><span class="auth-link" id="rsBack">Back</span></div>
+    </div>
+
+    <!-- signed in, ready -->
+    <div class="auth-panel hide" id="pReady">
+      <div class="auth-note">Signed in as <b id="whoName"></b></div>
+      <button class="btn" id="playBtn">Enter the maze</button>
+      <div class="auth-links"><span class="auth-link" id="signoutLink">Sign out</span></div>
+    </div>
+  </div>
+
   <div id="gfx">
     <span class="gfxlabel">Graphics</span>
     <button class="gfxbtn" id="gfxLow">Low</button>
     <button class="gfxbtn" id="gfxHigh">High</button>
   </div>
-  <div class="fine"><b>live multiplayer</b> — everyone here shares one maze · first to the Heart wins the round</div>
+  <div class="fine"><b>live multiplayer</b> — everyone shares one maze · first to the Heart wins</div>
 </div>
 
 <div class="overlay hide" id="ovDeath">

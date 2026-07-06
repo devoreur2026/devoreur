@@ -12,7 +12,8 @@ import * as eaters from './eaters.js';
 import * as postfx from './postfx.js';
 import * as mapview from './mapview.js';
 import { updateHud } from './hud.js';
-import './game.js';   // registers server-event hooks + overlay buttons
+import './game.js';     // registers server-event hooks + overlay buttons
+import './authui.js';   // start-overlay account UI (sign in / up / OTP / reset)
 
 window.UMBRA = { net, player, state };   // dev handle for debugging/inspection
 

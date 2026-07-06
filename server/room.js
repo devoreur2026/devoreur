@@ -58,7 +58,7 @@ export class Room {
     var p = new ServerPlayer(pid, name, this.players.size, ws);
     p.spawnAt(this.startWX.x, this.startWX.z);
     this.players.set(pid, p);
-    this.send(ws, { t: MSG.WELCOME, id: pid, color: p.color });
+    this.send(ws, { t: MSG.WELCOME, id: pid, color: p.color, name: p.name });
     this.send(ws, this.roundMsg());
     return p;
   }

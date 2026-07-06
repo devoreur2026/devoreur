@@ -13,7 +13,6 @@ var ovDeath = document.getElementById('ovDeath');
 var ovWin = document.getElementById('ovWin');
 var flashEl = document.getElementById('flash');
 var hintEl = document.getElementById('hint');
-var nameInput = document.getElementById('nameInput');
 var winTitle = document.getElementById('winTitle');
 var countdownEl = document.getElementById('countdown');
 
@@ -25,16 +24,15 @@ function clearMarkers(){
   markers.length = 0;
 }
 
-function start(){
-  var name = (nameInput.value || '').trim() || 'Anon';
+// Called by the auth UI once signed in. `token` is the verified Supabase access
+// token; the server derives the player name from it. The overlay stays up until
+// the server admits us (the 'round' handler hides it) so a rejection can surface.
+export function enterMaze(token){
   Sfx.init();
-  net.connect(name);
-  ovStart.classList.add('hide');
-  lockPointer();
+  lockPointer();                 // best-effort (we're inside the Enter click)
+  net.connect(token);
   setTimeout(function(){ hintEl.classList.add('fade'); }, 9000);
 }
-document.getElementById('startBtn').addEventListener('click', start);
-nameInput.addEventListener('keydown', function(e){ if (e.code === 'Enter') start(); });
 
 /* ---- Low / High graphics toggle (default Low on phones) ---- */
 var gfxLow = document.getElementById('gfxLow');
@@ -50,12 +48,16 @@ gfxLow.addEventListener('click', function(){ setQuality('low'); });
 gfxHigh.addEventListener('click', function(){ setQuality('high'); });
 setQuality(isMobile ? 'low' : 'high');
 
+// Show who we're signed in as, in-game.
+net.on('welcome', function(){ document.getElementById('whoami').textContent = net.name ? '◈ ' + net.name : ''; });
+
 // New maze for a round (initial join or after a countdown).
 net.on('round', function(){
   var maze = buildMaze(net.grid, net.treasureT);
   setMaze(maze);
   spawnAtStart(net.startT);
   clearMarkers();
+  ovStart.classList.add('hide');     // admitted -> leave the start/auth screen
   ovDeath.classList.add('hide');
   ovWin.classList.add('hide');
   state.phase = 'playing';
