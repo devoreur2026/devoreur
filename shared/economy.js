@@ -18,9 +18,10 @@ export function POT(roundId){ return 'pot:' + roundId; }
 // round economy — OPEN MAZE with a rising entry price
 export var ENTRY_BASE = 1000;       // CDF base entry
 export var ENTRY_PER_MINUTE = 50;   // + this per full minute since the round started
+export var ENTRY_MAX = 2000;        // the entry price stops growing here (reached at minute 20)
 export var HOUSE_RAKE = 0.30;       // 30% of each entry -> house, rest -> pot
-export var ROUND_LIMIT = 600;       // seconds; Heart unclaimed at the limit -> pot rolls over
-export var ENTRY_CLOSE = 480;       // seconds; entries lock at 8:00 (arrivals wait for next round)
+export var ROUND_LIMIT = 1200;      // seconds (20 min); Heart unclaimed at the limit -> pot rolls over
+export var ENTRY_CLOSE = 960;       // seconds; entries lock 4 min before the limit
 export var KILL_PENALTY = 250;      // victim loses up to this from Credit (never negative)
 export var FIREBALL_KILLER_SHARE = 0.70;  // of the taken amount -> killer EARNINGS, rest -> pot
 export var EATER_HOUSE_SHARE = 0.50;      // of the taken amount -> house, rest -> pot
@@ -42,11 +43,11 @@ export var FIREBALL_FLARE = 1.4;        // seconds a thrower is "loud" to eaters
 export var DEV_GRANT = 5000;
 
 /* ---- pure split helpers: parts always sum to the whole ---- */
-// Entry price rises 50 CDF per full minute since the round started.
-//   0:00–0:59 -> 1000, 1:00 -> 1050, 5:00 -> 1250, etc.
+// Entry price rises 50 CDF per full minute since the round started, capped at
+// ENTRY_MAX. 0:00–0:59 -> 1000, 1:00 -> 1050, 5:00 -> 1250, 20:00+ -> 2000.
 export function entryPrice(roundElapsedSeconds){
   var minutes = Math.floor(Math.max(0, roundElapsedSeconds) / 60);
-  return ENTRY_BASE + ENTRY_PER_MINUTE * minutes;
+  return Math.min(ENTRY_MAX, ENTRY_BASE + ENTRY_PER_MINUTE * minutes);
 }
 export function entriesOpen(roundElapsedSeconds){ return roundElapsedSeconds < ENTRY_CLOSE; }
 export function splitEntry(price){

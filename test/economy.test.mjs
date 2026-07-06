@@ -1,7 +1,7 @@
 // Unit tests for every economy path. Run: node test/economy.test.mjs
 import { Bank } from '../server/bank.js';
 import {
-  CREDIT, EARNINGS, HOUSE, POT, ENTRY_BASE, ENTRY_PER_MINUTE, entryPrice, KILL_PENALTY, BONUS_POT,
+  CREDIT, EARNINGS, HOUSE, POT, ENTRY_BASE, ENTRY_PER_MINUTE, ENTRY_MAX, entryPrice, KILL_PENALTY, BONUS_POT,
   FIREBALL_PACK, FIREBALL_PACK_PRICE
 } from '../shared/economy.js';
 
@@ -232,6 +232,9 @@ section('rising entry price');
   eq(entryPrice(59), ENTRY_BASE, '0:59 still base');
   eq(entryPrice(60), ENTRY_BASE + ENTRY_PER_MINUTE, '1:00 = 1050');
   eq(entryPrice(300), ENTRY_BASE + 5 * ENTRY_PER_MINUTE, '5:00 = 1250');
+  eq(entryPrice(20 * 60), ENTRY_MAX, '20:00 = 2000 (the cap)');
+  eq(entryPrice(60 * 60), ENTRY_MAX, 'past the cap it stays 2000, no more growing');
+  eq(entryPrice(19 * 60), ENTRY_MAX - ENTRY_PER_MINUTE, '19:00 = 1950 (just under the cap)');
   // a late entry charges the higher price and still splits 30/70 exactly
   var b = new Bank();
   b.grant('L', 5000, 'gL');
