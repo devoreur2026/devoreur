@@ -24,6 +24,7 @@ export class ServerPlayer {
     this.account = account || ('anon:' + id);   // Supabase user id -> wallet key
     this.paid = false;                            // entered (paid) the current round?
     this.throwCd = 0;                             // fireball cooldown timer
+    this.flareUntil = 0;                          // "loud/bright to eaters" until this round time
     this.color = PALETTE[colorIndex % PALETTE.length];
     this.ws = ws;
     this.x = 0; this.z = 0; this.yaw = 0;

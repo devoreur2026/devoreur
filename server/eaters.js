@@ -55,6 +55,7 @@ export class Eaters {
         if (d < nearestD){ nearestD = d; nearest = pl; }
         if (pl.invuln > 0) continue;
         var hearR = (pl.speed > WALK) ? 7.5 : HEAR_D;
+        if (pl.flare) hearR = Math.max(hearR, 14);   // throwing a fireball is loud + bright
         if (d < hearR || (d < SIGHT_D && maze.los(a.px, a.pz, pl.x, pl.z))){
           if (d < noticedD){ noticedD = d; noticed = pl; }
         }

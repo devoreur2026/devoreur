@@ -3,11 +3,11 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "UMBRA — a real-time, server-authoritative multiplayer maze treasure hunt (Three.js)",
+  "description": "UMBRA \u2014 a real-time, server-authoritative multiplayer maze treasure hunt (Three.js)",
   "scripts": {
     "start": "node server/index.js",
     "dev": "node server/index.js",
-    "test": "node test/economy.test.mjs && node test/round-economy.test.mjs"
+    "test": "node test/economy.test.mjs && node test/round-economy.test.mjs && node test/fireball.test.mjs"
   },
   "engines": {
     "node": ">=18"

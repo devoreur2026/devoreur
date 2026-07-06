@@ -8,7 +8,10 @@ import { generateMaze, WX, TX, id } from '../shared/maze.js';
 import {
   TICK_DT, MAX_PLAYERS, WIN_DIST, FIELD_REFRESH, ROUND_COUNTDOWN
 } from '../shared/config.js';
-import { ENTRY_FEE, BONUS_POT, bonusUnlocked } from '../shared/economy.js';
+import {
+  ENTRY_FEE, BONUS_POT, bonusUnlocked,
+  FIREBALL_SPEED, FIREBALL_RANGE, FIREBALL_COOLDOWN, FIREBALL_HIT_R, FIREBALL_FLARE
+} from '../shared/economy.js';
 import { MSG, PHASE } from '../shared/protocol.js';
 import { Eaters } from './eaters.js';
 import { ServerPlayer } from './player.js';
@@ -28,6 +31,8 @@ export class Room {
     this.roundCounter = 0;
     this.roundId = null;
     this.killSeq = 0;
+    this.fbSeq = 0;
+    this.fireballs = [];
     this.paidCount = 0;
     this.lastTick = Date.now();
     this.newRound();
@@ -108,7 +113,68 @@ export class Room {
     p.applyCommands(this.maze, cmds, Date.now() / 1000);
   }
 
-  throwFireball(p, msg){ /* implemented in the fireball commit */ }
+  // Server-authoritative fireball throw. Origin is the player's *authoritative*
+  // position (never a client-claimed one), so shots can't teleport. Validated:
+  // must be a paid participant, off cooldown, and have a fireball in inventory.
+  throwFireball(p, msg){
+    if (this.phase !== PHASE.PLAYING || !p.paid) return;
+    if (p.throwCd > 0) return;                                   // cooldown
+    var throwId = 'fb:' + p.account + ':' + msg.id;             // idempotent (double-send safe)
+    var consumed = this.bank.consumeFireball(p.account, throwId);
+    if (!consumed.ok){ this.sendWallet(p); return; }            // no fireballs
+    p.throwCd = FIREBALL_COOLDOWN;
+    p.flareUntil = this.t + FIREBALL_FLARE;                     // now loud/bright to eaters
+    var yaw = +msg.yaw || 0;
+    var dirx = -Math.sin(yaw), dirz = -Math.cos(yaw);          // camera-forward (matches movement)
+    var fb = { id: ++this.fbSeq, x: p.x, z: p.z, dirx: dirx, dirz: dirz, dist: 0,
+               owner: p.id, ownerAccount: p.account, ownerName: p.name };
+    this.fireballs.push(fb);
+    this.broadcast({ t: MSG.FIREBALL, id: fb.id, x: p.x, z: p.z, dx: dirx, dz: dirz,
+                     speed: FIREBALL_SPEED, range: FIREBALL_RANGE, owner: p.id });
+    this.sendWallet(p);                                         // inventory changed
+  }
+
+  stepFireballs(dt){
+    if (!this.fireballs.length) return;
+    var alive = [];
+    for (var i = 0; i < this.fireballs.length; i++){
+      var fb = this.fireballs[i];
+      var step = FIREBALL_SPEED * dt;
+      var nx = fb.x + fb.dirx * step, nz = fb.z + fb.dirz * step;
+      fb.dist += step;
+      if (this.maze.solidAt(nx, nz) || fb.dist > FIREBALL_RANGE){  // hit a wall or fizzled out
+        this.broadcast({ t: MSG.FIREBALL_END, id: fb.id, x: fb.x, z: fb.z, hit: 0 });
+        continue;
+      }
+      fb.x = nx; fb.z = nz;
+      var victim = null;
+      for (var pw of this.players.values()){
+        if (pw.id === fb.owner || !pw.paid || pw.invuln > 0) continue;   // no self-hit, no eaters, no invuln
+        var dx = pw.x - fb.x, dz = pw.z - fb.z;
+        if (dx * dx + dz * dz < FIREBALL_HIT_R * FIREBALL_HIT_R){ victim = pw; break; }
+      }
+      if (victim){
+        this.fireballKill(fb, victim);
+        this.broadcast({ t: MSG.FIREBALL_END, id: fb.id, x: fb.x, z: fb.z, hit: 1 });
+        continue;
+      }
+      alive.push(fb);
+    }
+    this.fireballs = alive;
+  }
+
+  // one hit kills: normal death flow + PvP kill economy + kill feed
+  fireballKill(fb, victim){
+    var killer = this.players.get(fb.owner);
+    var killId = this.roundId + ':f:' + (++this.killSeq);
+    this.bank.killByFireball(victim.account, fb.ownerAccount, this.roundId, killId);
+    victim.deaths++;
+    victim.spawnAt(this.startWX.x, this.startWX.z);
+    this.send(victim.ws, { t: MSG.KILLED, by: 'fireball', byName: fb.ownerName });
+    this.sendWallet(victim);
+    if (killer) this.sendWallet(killer);
+    this.broadcast({ t: MSG.KILLFEED, text: fb.ownerName + ' burned ' + victim.name });
+  }
 
   refreshFields(dt){
     for (var p of this.players.values()){
@@ -180,13 +246,15 @@ export class Room {
     for (var p of this.players.values()){
       p.invuln = Math.max(0, p.invuln - dt);
       p.throwCd = Math.max(0, p.throwCd - dt);
-      arr.push({ id: p.id, x: p.x, z: p.z, invuln: p.invuln, speed: p.speed });
+      arr.push({ id: p.id, x: p.x, z: p.z, invuln: p.invuln, speed: p.speed, flare: (p.flareUntil || 0) > this.t });
     }
 
     var self = this;
     this.eaters.update(dt, this.t, arr,
       function(pid){ var pp = self.players.get(pid); return pp ? pp.field : null; },
       function(pid){ self.kill(pid); });
+
+    this.stepFireballs(dt);
 
     // win: first PAID player to the treasure
     for (var pw of this.players.values()){

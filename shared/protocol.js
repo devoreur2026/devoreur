@@ -20,7 +20,9 @@ export var MSG = {
   WALLET:     'wallet',    // { credit, earnings, fireballs }  (private, on change)
   SPECTATE:   'spectate',  // { reason }  you're not in this paid round
   HISTORY_DATA:'historyData', // { rows:[...] }  ledger rows for the wallet UI
-  KILLFEED:   'killfeed'   // { text }  "X burned Y"
+  KILLFEED:   'killfeed',  // { text }  "X burned Y"
+  FIREBALL:   'fb',        // { id, x, z, dx, dz, speed, range, owner }  a projectile was thrown
+  FIREBALL_END:'fbEnd'     // { id, x, z, hit }  projectile expired/hit
 };
 
 // Round phases carried inside STATE.round.phase
