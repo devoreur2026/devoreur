@@ -13,10 +13,11 @@ export var MSG = {
   // server -> client
   AUTH_ERROR: 'authError', // { message }  join rejected (missing/invalid/expired token)
   WELCOME:    'welcome',   // { id, color, name }
-  ROUND:      'round',     // { seed, grid(base64), treasure:{x,z}, start:{x,z} }  (new maze)
-  STATE:      'state',     // { time, players, eaters, fireballs, econ, round }
-  KILLED:     'killed',    // { by }  -> caught; respawned at start
-  ROUND_OVER: 'roundOver', // { winnerId, winnerName, pot, target, topup, paid, bonus, players:[{id,name,net}] }
+  ROUND:      'round',     // { seed, grid(base64), treasure:{x,z} }  (new maze)
+  SPAWN:      'spawn',     // { x, z }  your randomized spawn point (join / round / respawn)
+  STATE:      'state',     // { time, players, eaters, econ, round }
+  KILLED:     'killed',    // { by, byName }  -> caught; respawned at a new random spot
+  ROUND_OVER: 'roundOver', // { winnerId, winnerName, pot, target, topup, rolled, paid, bonus, players:[{id,name,net,entry}] }
   WALLET:     'wallet',    // { credit, earnings, fireballs }  (private, on change)
   SPECTATE:   'spectate',  // { reason }  you're not in this paid round
   HISTORY_DATA:'historyData', // { rows:[...] }  ledger rows for the wallet UI

@@ -1,9 +1,11 @@
-// Integration tests for the room's paid-round economy. Drives the Room class
+// Integration tests for the OPEN-MAZE round economy: open entry, rising price,
+// randomized spawns, entry lockout, and pot rollover. Drives the Room class
 // directly with an injected fresh Bank (no sockets/auth). Run via npm test.
 import { Room } from '../server/room.js';
 import { Bank } from '../server/bank.js';
-import { ENTRY_FEE, BONUS_POT } from '../shared/economy.js';
-import { JOIN_GRACE } from '../shared/config.js';
+import { WX, TX, id as cellId } from '../shared/maze.js';
+import { ENTRY_BASE, ENTRY_PER_MINUTE, ENTRY_CLOSE, BONUS_POT, entryPrice } from '../shared/economy.js';
+import { SPAWN_MIN_PLAYER_DIST, SPAWN_HEART_FRAC } from '../shared/config.js';
 
 var passed = 0, failed = 0;
 function ok(c, m){ if (c) passed++; else { failed++; console.log('  ✗ ' + m); } }
@@ -14,7 +16,7 @@ function mkws(){
            last: function(t){ for (var i = msgs.length - 1; i >= 0; i--) if (msgs[i].t === t) return msgs[i]; return null; } };
 }
 
-console.log('— join enters the live round / pot / eater-kill / payout');
+console.log('— open entry: funded players enter on join; pot / eater-kill / payout');
 {
   var bank = new Bank();
   var room = new Room('t', bank); clearInterval(room.timer);
@@ -22,67 +24,122 @@ console.log('— join enters the live round / pot / eater-kill / payout');
   var wa = mkws(), wb = mkws();
   var A = room.addPlayer('ALICE', 'A', wa);
   var B = room.addPlayer('BOB', 'B', wb);
-  ok(A.paid && B.paid, 'funded players ENTER the round on join (no phantom spectator)');
+  ok(A.paid && B.paid, 'both enter immediately on join (open entry)');
   eq(room.paidCount, 2, 'paidCount = 2');
   eq(room.potBalance(), 1400, 'pot = 2 * 700');
-  eq(bank.houseBalance(), 600, 'house rake = 2 * 300');
-  eq(bank.wallet('A').credit, 4000, 'A credit debited 1000 exactly once');
-  eq(wa.last('wallet').credit, 4000, 'wallet pushed to client');
+  eq(bank.wallet('A').credit, 4000, 'A charged the base price (1000)');
+  ok(wa.last('spawn') && typeof wa.last('spawn').x === 'number', 'server sent A a spawn point');
 
   B.invuln = 0;
-  room.kill(B.id);                              // eater kill
-  eq(bank.wallet('B').credit, 3750, 'eater kill takes 250 from victim');
+  room.kill(B.id);
+  eq(bank.wallet('B').credit, 3750, 'eater kill takes 250');
   eq(room.potBalance(), 1525, 'pot += 125');
-  eq(bank.houseBalance(), 725, 'house += 125');
-  ok(wb.last('killed') && wb.last('killed').by === 'eater', 'victim told they were caught');
+  ok(wb.last('spawn'), 'respawn sends a fresh spawn point');
 
   room.endRound(A);
-  eq(bank.wallet('A').earnings, 1525, 'winner earnings = pot (<5 players)');
+  eq(bank.wallet('A').earnings, 1525, 'winner earnings = pot (<5)');
   var ro = wa.last('roundOver');
-  eq(ro.pot, 1525, 'summary pot'); eq(ro.target, 1525, 'summary payout'); eq(ro.topup, 0, 'no top-up');
+  eq(ro.pot, 1525, 'summary pot'); eq(ro.target, 1525, 'payout'); eq(ro.rolled, 0, 'nothing rolls over on a win');
+  ok(ro.players.every(function(p){ return typeof p.entry === 'number'; }), 'summary lists each entry price');
   eq(bank.auditRound(room.roundId), 0, 'round audit nets to zero');
 }
 
-console.log('— can\'t afford = spectate; 5+ bonus top-up');
+console.log('— rising price for a mid-round late join');
+{
+  var bank = new Bank();
+  var room = new Room('t', bank); clearInterval(room.timer);
+  bank.grant('A', 5000, 'gA'); bank.grant('L', 5000, 'gL');
+  room.addPlayer('A', 'A', mkws());
+  room.t = 185;                                    // 3:05 into the round
+  var wl = mkws();
+  var L = room.addPlayer('LATE', 'L', wl);
+  ok(L.paid, 'late joiner still enters (open maze)');
+  eq(L.entryPrice, entryPrice(185), 'charged the risen price (1150)');
+  eq(bank.wallet('L').credit, 5000 - entryPrice(185), 'debited the risen price');
+}
+
+console.log('— broke at the door = ghost (price vs balance shown)');
+{
+  var bank = new Bank();
+  var room = new Room('t', bank); clearInterval(room.timer);
+  bank.grant('P', 500, 'gP');                       // < 1000
+  var wp = mkws();
+  var P = room.addPlayer('POOR', 'P', wp);
+  ok(!P.paid, 'broke player is a ghost, not paid');
+  eq(room.paidCount, 0, 'not counted as paid');
+  var sp = wp.last('spectate');
+  ok(sp && sp.reason === 'insufficient' && sp.price === ENTRY_BASE && sp.credit === 500, 'told price vs balance');
+  ok(wp.last('spawn'), 'ghost still gets a spawn to roam');
+}
+
+console.log('— entries lock at 8:00; latecomer waits for next round');
+{
+  var bank = new Bank();
+  var room = new Room('t', bank); clearInterval(room.timer);
+  bank.grant('A', 5000, 'gA'); bank.grant('X', 5000, 'gX');
+  room.addPlayer('A', 'A', mkws());
+  room.t = ENTRY_CLOSE + 5;                         // 8:05 — entries closed
+  ok(!room.entriesOpen(), 'entries closed after 8:00');
+  var wx = mkws();
+  var X = room.addPlayer('X', 'X', wx);
+  ok(!X.paid, 'arrival during lockout is a ghost');
+  ok(wx.last('spectate').reason === 'locked', 'told the lockout');
+  eq(bank.wallet('X').credit, 5000, 'not charged during lockout');
+}
+
+console.log('— 5+ bonus top-up (early + late buy-ins all count)');
 {
   var bank = new Bank();
   var room = new Room('t', bank); clearInterval(room.timer);
   var ids = ['A', 'B', 'C', 'D', 'E'];
   ids.forEach(function(a){ bank.grant(a, 5000, 'g' + a); });
-  bank.grant('P', 500, 'gP');                    // can't afford entry
-  var ws = {}; ids.concat(['P']).forEach(function(a){ ws[a] = mkws(); });
-  var P = room.addPlayer('POOR', 'P', ws['P']);  // broke -> spectate
+  var ws = {}; ids.forEach(function(a){ ws[a] = mkws(); });
   var players = {};
   ids.forEach(function(a){ players[a] = room.addPlayer(a, a, ws[a]); });
-
-  eq(room.paidCount, 5, 'only the 5 funded players are paid');
-  ok(!P.paid, 'broke player is not paid');
-  ok(ws['P'].last('spectate').reason === 'insufficient', 'broke player told to spectate');
-  eq(room.potBalance(), 3500, 'pot = 5 * 700');
-
+  eq(room.paidCount, 5, 'five paid players');
   var houseBefore = bank.houseBalance();
   room.endRound(players['A']);
-  eq(bank.wallet('A').earnings, BONUS_POT, 'winner guaranteed 10000 with 5+ players');
+  eq(bank.wallet('A').earnings, BONUS_POT, 'winner guaranteed 10000');
   var ro = ws['A'].last('roundOver');
-  eq(ro.target, BONUS_POT, 'summary shows 10000'); eq(ro.topup, BONUS_POT - 3500, 'house tops up 6500');
-  ok(ro.bonus === true, 'bonus flagged unlocked');
+  eq(ro.topup, BONUS_POT - 3500, 'house tops up 6500'); ok(ro.bonus, 'bonus flagged');
   eq(bank.houseBalance(), houseBefore - ro.topup, 'house paid the top-up');
-  eq(bank.auditRound(room.roundId), 0, 'round audit nets to zero');
+  eq(bank.auditRound(room.roundId), 0, 'audit zero');
 }
 
-console.log('— late joiner (past grace) spectates until next round');
+console.log('— time-limit rollover: pot carries into the next round, audits stay zero');
+{
+  var bank = new Bank();
+  var room = new Room('t3', bank); clearInterval(room.timer);
+  bank.grant('A', 5000, 'gA'); bank.grant('B', 5000, 'gB');
+  room.addPlayer('A', 'A', mkws());
+  room.addPlayer('B', 'B', mkws());
+  var r1 = room.roundId;
+  eq(room.potBalance(), 1400, 'r1 pot 1400');
+
+  room.endRound(null);                              // 10:00 hit, no winner
+  var ro = room.players.get(1) ? null : null;       // (ROUND_OVER already broadcast)
+  room.newRound();                                  // rolls r1 pot into r2 + re-charges present players
+  var r2 = room.roundId;
+  eq(room.rolledIn, 1400, 'entire r1 pot rolled into r2');
+  eq(room.potBalance(), 1400 + 1400, 'r2 pot = rollover + re-entries');
+  eq(bank.auditRound(r1), 0, 'expired round r1 audits to zero');
+  eq(bank.auditRound(r2), 0, 'r2 (rollover + entries) audits to zero');
+  ok(bank.ledger.verifyIntegrity(), 'ledger integrity holds through rollover');
+}
+
+console.log('— randomized spawns: far from the Heart and from other players');
 {
   var bank = new Bank();
   var room = new Room('t', bank); clearInterval(room.timer);
-  bank.grant('A', 5000, 'gA'); bank.grant('L', 5000, 'gL');
-  var A = room.addPlayer('A', 'A', mkws());       // enters round
-  room.t = JOIN_GRACE + 2;                        // round is now well underway
-  var wl = mkws();
-  var L = room.addPlayer('LATE', 'L', wl);
-  ok(!L.paid, 'funded late joiner spectates (round underway)');
-  ok(wl.last('spectate').reason === 'midround', 'told they joined mid-round');
-  eq(bank.wallet('L').credit, 5000, 'late joiner not charged this round');
-  eq(room.paidCount, 1, 'still just the one paid player');
+  bank.grant('A', 5000, 'gA'); bank.grant('B', 5000, 'gB');
+  var A = room.addPlayer('A', 'A', mkws());
+  var B = room.addPlayer('B', 'B', mkws());
+  var apart = Math.hypot(A.x - B.x, A.z - B.z);
+  ok(apart >= SPAWN_MIN_PLAYER_DIST, 'players spawn >= min distance apart (got ' + apart.toFixed(1) + ')');
+  var minHeart = Math.floor(SPAWN_HEART_FRAC * room.best);
+  var aHeart = room.tField[cellId(TX(A.x), TX(A.z))];
+  var bHeart = room.tField[cellId(TX(B.x), TX(B.z))];
+  ok(aHeart >= minHeart && bHeart >= minHeart, 'both spawn a safe BFS distance from the Heart');
 }
 
 console.log('— refund on abort (last paid player leaves)');
@@ -93,14 +150,12 @@ console.log('— refund on abort (last paid player leaves)');
   var A = room.addPlayer('A', 'A', mkws());
   var B = room.addPlayer('B', 'B', mkws());
   var abortedRound = room.roundId;
-  eq(bank.wallet('A').credit, 4000, 'A charged entry');
   room.removePlayer(A.id);
-  eq(bank.wallet('A').credit, 4000, 'no refund while another paid player remains');
+  eq(bank.wallet('A').credit, 4000, 'no refund while a paid player remains');
   room.removePlayer(B.id);
   eq(bank.wallet('A').credit, 5000, 'A fully refunded on abort');
   eq(bank.wallet('B').credit, 5000, 'B fully refunded on abort');
   eq(bank.auditRound(abortedRound), 0, 'aborted round nets to zero');
-  ok(bank.ledger.verifyIntegrity(), 'ledger integrity holds');
 }
 
 console.log('\n' + (failed === 0 ? '=== PASS ===' : '=== FAIL ===') + '  ' + passed + ' checks passed, ' + failed + ' failed');

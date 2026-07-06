@@ -1,7 +1,12 @@
 // Server-authoritative fireball combat + PvP kill economy. Run via npm test.
 import { Room } from '../server/room.js';
 import { Bank } from '../server/bank.js';
+import { WX } from '../shared/maze.js';
 import { FIREBALL_HIT_R } from '../shared/economy.js';
+
+// a guaranteed-open cell + world position for placing test players/projectiles
+var CELL = { x: 1, z: 1 };            // the maze is always carved from (1,1)
+function cellWX(){ return { x: WX(CELL.x), z: WX(CELL.z) }; }
 
 var passed = 0, failed = 0;
 function ok(c, m){ if (c) passed++; else { failed++; console.log('  ✗ ' + m); } }
@@ -42,14 +47,14 @@ console.log('— fireball hit -> kill + PvP economy + kill feed');
   var B = room.addPlayer('BOB', 'B', wb);
   bank.buyFireballs('A', 1, 'buy1');
 
-  // aim down an OPEN corridor from spawn, place BOB just ahead
-  var s = room.startT, dir;
+  // aim down an OPEN corridor from a known open cell, place BOB just ahead
+  var s = CELL, sw = cellWX(), dir;
   if (!room.maze.isWall(s.x + 1, s.z)) dir = { x: 1, z: 0 };
   else if (!room.maze.isWall(s.x - 1, s.z)) dir = { x: -1, z: 0 };
   else if (!room.maze.isWall(s.x, s.z + 1)) dir = { x: 0, z: 1 };
   else dir = { x: 0, z: -1 };
-  A.x = room.startWX.x; A.z = room.startWX.z;
-  B.x = room.startWX.x + dir.x * 1.6; B.z = room.startWX.z + dir.z * 1.6; B.invuln = 0;
+  A.x = sw.x; A.z = sw.z;
+  B.x = sw.x + dir.x * 1.6; B.z = sw.z + dir.z * 1.6; B.invuln = 0;
 
   // push a projectile heading at BOB (bypasses aim; combat sim is what we test)
   room.fireballs.push({ id: 1, x: A.x, z: A.z, dirx: dir.x, dirz: dir.z, dist: 0,
@@ -67,9 +72,8 @@ console.log('— fireball hit -> kill + PvP economy + kill feed');
   ok(feed && feed.text === 'ALICE burned BOB', 'kill feed: "ALICE burned BOB"');
   eq(bank.auditRound(room.roundId), 0, 'round audit still nets to zero');
 
-  // fireballs do not hurt eaters: a projectile into a wall just fizzles
-  var A2x = room.startWX.x, A2z = room.startWX.z;
-  room.fireballs.push({ id: 2, x: A2x, z: A2z, dirx: -dir.x, dirz: -dir.z, dist: 0, owner: A.id, ownerAccount: 'A', ownerName: 'ALICE' });
+  // a projectile into a wall / open air just fizzles (no infinite flight)
+  room.fireballs.push({ id: 2, x: sw.x, z: sw.z, dirx: -dir.x, dirz: -dir.z, dist: 0, owner: A.id, ownerAccount: 'A', ownerName: 'ALICE' });
   var before = B.deaths;
   for (var j = 0; j < 30 && room.fireballs.length; j++) room.stepFireballs(0.05);
   eq(room.fireballs.length, 0, 'projectile expires (wall or range), no infinite flight');

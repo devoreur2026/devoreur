@@ -6,10 +6,11 @@
 // touches balances directly.
 import { generateMaze, WX, TX, id } from '../shared/maze.js';
 import {
-  TICK_DT, MAX_PLAYERS, WIN_DIST, FIELD_REFRESH, ROUND_COUNTDOWN, JOIN_GRACE
+  TICK_DT, MAX_PLAYERS, WIN_DIST, FIELD_REFRESH, ROUND_COUNTDOWN,
+  SPAWN_HEART_FRAC, SPAWN_MIN_PLAYER_DIST
 } from '../shared/config.js';
 import {
-  ENTRY_FEE, BONUS_POT, bonusUnlocked,
+  BONUS_POT, bonusUnlocked, entryPrice, entriesOpen, ROUND_LIMIT,
   FIREBALL_SPEED, FIREBALL_RANGE, FIREBALL_COOLDOWN, FIREBALL_HIT_R, FIREBALL_FLARE
 } from '../shared/economy.js';
 import { MSG, PHASE } from '../shared/protocol.js';
@@ -43,14 +44,58 @@ export class Room {
   hasRoom(){ return this.players.size < MAX_PLAYERS; }
 
   gridB64(){ return Buffer.from(this.grid).toString('base64'); }
-  roundMsg(){
-    return { t: MSG.ROUND, seed: this.seed, grid: this.gridB64(),
-             treasure: this.treasureT, start: this.startT };
-  }
+  roundMsg(){ return { t: MSG.ROUND, seed: this.seed, grid: this.gridB64(), treasure: this.treasureT }; }
   potBalance(){ return this.bank.potBalance(this.roundId); }
+  price(){ return entryPrice(this.t); }
+  entriesOpen(){ return this.phase === PHASE.PLAYING && entriesOpen(this.t); }
+  roundInfo(){   // for the /api/round join-screen preview
+    return { price: this.price(), pot: this.potBalance(), elapsed: +this.t.toFixed(1),
+             limit: ROUND_LIMIT, open: this.entriesOpen(), paid: this.paidCount };
+  }
   sendWallet(p){
     var w = this.bank.wallet(p.account);
     this.send(p.ws, { t: MSG.WALLET, credit: w.credit, earnings: w.earnings, fireballs: this.bank.fireballs(p.account) });
+  }
+
+  // Randomized spawn: an open cell a safe minimum BFS distance from the Heart
+  // and world distance from every active player (the map is public + campable).
+  pickSpawn(){
+    var minHeart = Math.floor(SPAWN_HEART_FRAC * this.best), fallback = null;
+    for (var i = 0; i < 80; i++){
+      var cell = this.maze.randOpenCell(this.tField, minHeart, this.best, this.rnd);
+      var wx = WX(cell.x), wz = WX(cell.z);
+      if (!fallback) fallback = { x: wx, z: wz };
+      var ok = true;
+      for (var p of this.players.values()){
+        if (!p.paid) continue;
+        var dx = p.x - wx, dz = p.z - wz;
+        if (dx * dx + dz * dz < SPAWN_MIN_PLAYER_DIST * SPAWN_MIN_PLAYER_DIST){ ok = false; break; }
+      }
+      if (ok) return { x: wx, z: wz };
+    }
+    return fallback || { x: this.treasureWX.x, z: this.treasureWX.z };
+  }
+  spawnPlayer(p){
+    var s = this.pickSpawn();
+    p.spawnAt(s.x, s.z);
+    this.send(p.ws, { t: MSG.SPAWN, x: s.x, z: s.z });
+  }
+
+  // Open entry: charge the current rising price and spawn immediately. Can't
+  // afford -> ghost (roam, clear price-vs-balance). Entries closed (8:00-10:00
+  // or between rounds) -> ghost, auto-entered at the next newRound.
+  enterOrSpectate(p){
+    if (this.entriesOpen()){
+      var res = this.bank.enterRound(p.account, this.roundId, this.price());
+      if (res.ok){ p.paid = true; p.entryPrice = res.price; this.paidCount++; this.spawnPlayer(p); this.sendWallet(p); return; }
+      p.paid = false; this.spawnPlayer(p);
+      var w = this.bank.wallet(p.account);
+      this.send(p.ws, { t: MSG.SPECTATE, reason: 'insufficient', price: this.price(), credit: w.credit });
+    } else {
+      p.paid = false; this.spawnPlayer(p);
+      this.send(p.ws, { t: MSG.SPECTATE, reason: 'locked' });
+    }
+    this.sendWallet(p);
   }
 
   newRound(){
@@ -59,62 +104,41 @@ export class Room {
     this.maze = gen.maze;
     this.grid = gen.grid;
     this.dS = gen.dS;
+    this.tField = gen.tField;
+    this.best = gen.best;
+    this.rnd = gen.rnd;
     this.treasureT = gen.treasureT;
-    this.startT = gen.startT;
-    this.startWX = { x: WX(this.startT.x), z: WX(this.startT.z) };
     this.treasureWX = { x: WX(this.treasureT.x), z: WX(this.treasureT.z) };
     this.eaters = new Eaters(this.maze, this.dS, gen.best, gen.rnd);
     this.phase = PHASE.PLAYING;
     this.winnerName = null;
     this.t = 0;
-    this.killSeq = 0;
-    this.fireballs = [];                 // live projectiles (populated in commit: fireballs)
-    this.roundId = this.name + '#' + (++this.roundCounter);
+    this.killSeq = 0; this.fbSeq = 0; this.fireballs = [];
 
-    // charge the entry fee; those who can't afford spectate this round
+    var prevRound = this.roundId;
+    this.roundId = this.name + '#' + (++this.roundCounter);
+    this.rolledIn = prevRound ? this.bank.rollover(prevRound, this.roundId) : 0;   // carry an unclaimed pot
+
+    this.broadcast(this.roundMsg());                 // maze first, then charge + spawn
     this.paidCount = 0;
-    for (var p of this.players.values()){
-      p.spawnAt(this.startWX.x, this.startWX.z);
-      var res = this.bank.enterRound(p.account, this.roundId);
-      p.paid = res.ok;
-      if (res.ok) this.paidCount++;
-      else this.send(p.ws, { t: MSG.SPECTATE, reason: 'insufficient', fee: ENTRY_FEE });
-      this.sendWallet(p);
-    }
-    this.broadcast(this.roundMsg());
+    for (var p of this.players.values()){ p.paid = false; p.entryPrice = 0; this.enterOrSpectate(p); }
   }
 
   addPlayer(name, account, ws){
     var pid = nextPlayerId++;
     var p = new ServerPlayer(pid, name, this.players.size, ws, account);
-    p.spawnAt(this.startWX.x, this.startWX.z);
-    p.paid = false;
     this.players.set(pid, p);
     this.send(ws, { t: MSG.WELCOME, id: pid, color: p.color, name: p.name });
     this.send(ws, this.roundMsg());
-
-    // Enter the live round if it's still joinable: nobody's paid in yet (the
-    // room's opening round, or one everyone left), or we're within JOIN_GRACE
-    // of when the round actually started. Otherwise spectate until the next
-    // round (everyone present is charged at newRound). This is what stops a
-    // funded player being frozen as a spectator of a phantom 0-player round.
-    if (this.phase === PHASE.PLAYING && (this.paidCount === 0 || this.t < JOIN_GRACE)){
-      var wasEmpty = this.paidCount === 0;
-      var res = this.bank.enterRound(p.account, this.roundId);
-      p.paid = res.ok;
-      if (res.ok){ this.paidCount++; if (wasEmpty) this.t = 0; }    // start the round clock on first entry
-      else this.send(ws, { t: MSG.SPECTATE, reason: 'insufficient', fee: ENTRY_FEE });
-    } else if (this.phase === PHASE.PLAYING){
-      this.send(ws, { t: MSG.SPECTATE, reason: 'midround' });
-    }
-    this.sendWallet(p);
+    this.enterOrSpectate(p);                          // open entry: charge current price + spawn immediately
     return p;
   }
 
   removePlayer(id){
     var p = this.players.get(id);
     this.players.delete(id);
-    // if the last paid player of a live round leaves, void the round (refund all)
+    if (p && p.paid) this.paidCount = Math.max(0, this.paidCount - 1);
+    // if the last paid player of a live round leaves, void it (refund everyone)
     if (p && p.paid && this.phase === PHASE.PLAYING && !this.anyPaidConnected()){
       this.bank.abortRound(this.roundId);
       this.newRound();
@@ -183,7 +207,7 @@ export class Room {
     var killId = this.roundId + ':f:' + (++this.killSeq);
     this.bank.killByFireball(victim.account, fb.ownerAccount, this.roundId, killId);
     victim.deaths++;
-    victim.spawnAt(this.startWX.x, this.startWX.z);
+    this.spawnPlayer(victim);                     // respawn at a fresh random spot (sends SPAWN)
     this.send(victim.ws, { t: MSG.KILLED, by: 'fireball', byName: fb.ownerName });
     this.sendWallet(victim);
     if (killer) this.sendWallet(killer);
@@ -211,33 +235,37 @@ export class Room {
       this.sendWallet(p);
     }
     p.deaths++;
-    p.spawnAt(this.startWX.x, this.startWX.z);
+    this.spawnPlayer(p);                          // respawn at a fresh random spot (sends SPAWN)
     this.send(p.ws, { t: MSG.KILLED, by: 'eater' });
   }
 
+  // winner may be null -> time limit hit, pot rolls into the next round
   endRound(winner){
     this.phase = PHASE.COUNTDOWN;
     this.countdown = ROUND_COUNTDOWN;
     this.winnerName = winner ? winner.name : null;
 
-    var pot = this.potBalance(), target = 0, topup = 0;
+    var pot = this.potBalance(), target = 0, topup = 0, rolled = 0;
     if (winner && winner.paid){
       var pay = this.bank.payout(winner.account, this.roundId, this.paidCount);
       target = pay.target; topup = pay.topup;
       this.sendWallet(winner);
+    } else {
+      rolled = pot;                              // unclaimed -> rolls over (transferred at newRound)
     }
     // audit: the round's ledger deltas must net to exactly zero
     var audit = this.bank.auditRound(this.roundId);
     if (audit !== 0) console.error('[AUDIT FAIL] round ' + this.roundId + ' nets ' + audit + ' (should be 0)');
 
     var summary = [];
-    for (var p of this.players.values()) summary.push({ id: p.id, name: p.name, net: this.bank.roundNet(p.account, this.roundId) });
+    for (var p of this.players.values())
+      summary.push({ id: p.id, name: p.name, net: this.bank.roundNet(p.account, this.roundId), entry: p.entryPrice });
 
     this.broadcast({
       t: MSG.ROUND_OVER,
       winnerId: winner ? winner.id : 0, winnerName: this.winnerName,
-      pot: pot, target: target, topup: topup, paid: this.paidCount,
-      bonus: bonusUnlocked(this.paidCount), players: summary
+      pot: pot, target: target, topup: topup, rolled: rolled,
+      paid: this.paidCount, bonus: bonusUnlocked(this.paidCount), players: summary
     });
   }
 
@@ -271,11 +299,14 @@ export class Room {
     this.stepFireballs(dt);
 
     // win: first PAID player to the treasure
+    var won = false;
     for (var pw of this.players.values()){
       if (!pw.paid) continue;
       var dx = this.treasureWX.x - pw.x, dz = this.treasureWX.z - pw.z;
-      if (Math.sqrt(dx * dx + dz * dz) < WIN_DIST){ this.endRound(pw); break; }
+      if (Math.sqrt(dx * dx + dz * dz) < WIN_DIST){ this.endRound(pw); won = true; break; }
     }
+    // 10-minute limit reached with no winner -> end + roll the pot over
+    if (!won && this.t >= ROUND_LIMIT) this.endRound(null);
 
     this.broadcastState();
   }
@@ -288,7 +319,11 @@ export class Room {
       time: +this.t.toFixed(2),
       players: players,
       eaters: this.eaters.snapshot(),
-      econ: { pot: this.potBalance(), paid: this.paidCount, bonus: bonusUnlocked(this.paidCount), bonusPot: BONUS_POT },
+      econ: {
+        pot: this.potBalance(), paid: this.paidCount,
+        bonus: bonusUnlocked(this.paidCount), bonusPot: BONUS_POT,
+        price: this.price(), elapsed: +this.t.toFixed(1), limit: ROUND_LIMIT, open: this.entriesOpen()
+      },
       round: {
         phase: this.phase,
         timeLeft: this.phase === PHASE.COUNTDOWN ? Math.ceil(this.countdown) : 0,
