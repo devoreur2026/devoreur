@@ -13,6 +13,10 @@ import { MSG } from '../shared/protocol.js';
 import { verifyToken, authConfig, authConfigured } from './auth.js';
 import { bank } from './bankInstance.js';
 import { initLedgerStore, ledgerPersistenceConfigured } from './ledgerStore.js';
+import { payments, paymentConfigObj, paymentStore, logPaymentStatus } from './paymentsInstance.js';
+import { makePaymentApi } from './paymentRoutes.js';
+
+var paymentApi = makePaymentApi({ payments: payments, store: paymentStore, config: paymentConfigObj, verifyToken: verifyToken });
 
 var __dirname = path.dirname(fileURLToPath(import.meta.url));
 var ROOT = path.resolve(__dirname, '..');   // project root (serves index.html, src/, shared/)
@@ -35,8 +39,11 @@ var MIME = {
   '.svg':  'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon'
 };
 
-var server = http.createServer((req, res) => {
+var server = http.createServer(async (req, res) => {
   var urlPath = decodeURIComponent(req.url.split('?')[0]);
+
+  // payment endpoints (/api/pay/* + the Unipesa callback) — self-contained
+  if (await paymentApi(req, res, urlPath)) return;
 
   // Public client config (Supabase URL + publishable anon key) from env vars.
   if (urlPath === '/api/config'){
@@ -152,6 +159,14 @@ if (ledgerPersistenceConfigured()){
     .catch((e) => console.error('[ledger] Supabase persistence FAILED to init — running in-memory only:', e && e.message));
 } else {
   console.log('[ledger] in-memory only (set SUPABASE_SECRET_KEY to persist the ledger in Supabase).');
+}
+
+// payments status + reconciliation loop (only when actually enabled)
+logPaymentStatus(paymentConfigObj);
+if (paymentConfigObj.ready){
+  setInterval(function(){
+    payments.reconcile().catch(function(e){ console.error('[payments reconcile]', e && e.message); });
+  }, 60 * 1000);
 }
 
 server.listen(PORT, () => {
