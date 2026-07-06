@@ -8,4 +8,6 @@
 // `quality` drives the visual tier: 'high' enables post-processing (bloom +
 // film grain + vignette) and the full particle/lighting budget; 'low' keeps
 // the lighter look for phones (direct render, fewer lights/particles).
-export var state = { phase: 'menu', quality: 'high' };
+// uiBusy is true while a full-screen UI (the wallet) is open — movement and
+// throwing are locked so you're not driving blind behind the overlay.
+export var state = { phase: 'menu', quality: 'high', uiBusy: false };

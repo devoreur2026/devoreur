@@ -9,11 +9,13 @@ import { player, collectInputs, updateOffset, applyCamera, reconcile } from './p
 import { net } from './net.js';
 import * as remotePlayers from './remotePlayers.js';
 import * as eaters from './eaters.js';
+import * as fireballs from './fireballs.js';
 import * as postfx from './postfx.js';
 import * as mapview from './mapview.js';
 import { updateHud } from './hud.js';
-import './game.js';     // registers server-event hooks + overlay buttons
-import './authui.js';   // start-overlay account UI (sign in / up / OTP / reset)
+import './game.js';       // registers server-event hooks + overlay buttons
+import './authui.js';     // start-overlay account UI (sign in / up / OTP / reset)
+import './economyui.js';  // wallet / shop / pot / kill feed / summary
 
 window.UMBRA = { net, player, state };   // dev handle for debugging/inspection
 
@@ -49,6 +51,7 @@ function loop(){
   remotePlayers.render(dt);
   eaters.sync(net.eaters);
   eaters.render(dt, t);
+  fireballs.render(dt);
   animateWorld(dt, t, player);
   mapview.update();
   updateHud(dt);

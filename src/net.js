@@ -43,7 +43,11 @@ export var net = {
   players: [],
   eaters: [],
   round: { phase: 'playing', timeLeft: 0, winner: null },
+  econ: { pot: 0, paid: 0, bonus: false, bonusPot: 10000 },
+  wallet: { credit: 0, earnings: 0, fireballs: 0 },
+  spectating: false,
   rev: 0,                     // bumped on every STATE so the client reconciles once per snapshot
+  _n: 0,
 
   _hooks: {},
   on: function(type, fn){ this._hooks[type] = fn; },
@@ -78,6 +82,7 @@ export var net = {
         this.grid = Uint8Array.from(atob(m.grid), function(c){ return c.charCodeAt(0); });
         this.treasureT = m.treasure;
         this.startT = m.start;
+        this.spectating = false;
         this._emit('round', m);
         break;
       case MSG.STATE:
@@ -85,6 +90,7 @@ export var net = {
         this.players = m.players;
         this.eaters = m.eaters;
         this.round = m.round;
+        if (m.econ) this.econ = m.econ;
         this.rev++;
         this._emit('state', m);
         break;
@@ -93,6 +99,26 @@ export var net = {
         break;
       case MSG.ROUND_OVER:
         this._emit('roundOver', m);
+        break;
+      case MSG.WALLET:
+        this.wallet = { credit: m.credit, earnings: m.earnings, fireballs: m.fireballs };
+        this._emit('wallet', this.wallet);
+        break;
+      case MSG.SPECTATE:
+        this.spectating = true;
+        this._emit('spectate', m);
+        break;
+      case MSG.HISTORY_DATA:
+        this._emit('history', m.rows || []);
+        break;
+      case MSG.KILLFEED:
+        this._emit('killfeed', m.text);
+        break;
+      case MSG.FIREBALL:
+        this._emit('fireball', m);
+        break;
+      case MSG.FIREBALL_END:
+        this._emit('fireballEnd', m);
         break;
     }
   },
@@ -103,6 +129,13 @@ export var net = {
     var s = JSON.stringify(obj);
     delayed(function(){ if (ws.readyState === 1) ws.send(s); });
   },
+
+  nonce: function(){ return Date.now().toString(36) + '-' + (++this._n); },
+  throwFireball: function(yaw){ this.send({ t: MSG.THROW, id: this.nonce(), yaw: yaw }); },
+  buyFireballs: function(){ this.send({ t: MSG.SHOP, packs: 1, nonce: this.nonce() }); },
+  transfer: function(amount){ this.send({ t: MSG.TRANSFER, amount: amount, nonce: this.nonce() }); },
+  grantDev: function(){ this.send({ t: MSG.GRANT, nonce: this.nonce() }); },
+  requestHistory: function(){ this.send({ t: MSG.HISTORY }); },
 
   // find my own authoritative snapshot in the latest STATE
   self: function(){

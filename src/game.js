@@ -7,6 +7,7 @@ import { buildMaze, canvas } from './scene.js';
 import { player, setMaze, spawnAtStart, markers } from './player.js';
 import { scene } from './scene.js';
 import { Sfx } from './audio.js';
+import { clear as clearFireballs } from './fireballs.js';
 
 var ovStart = document.getElementById('ovStart');
 var ovDeath = document.getElementById('ovDeath');
@@ -57,6 +58,7 @@ net.on('round', function(){
   setMaze(maze);
   spawnAtStart(net.startT);
   clearMarkers();
+  clearFireballs();
   ovStart.classList.add('hide');     // admitted -> leave the start/auth screen
   ovDeath.classList.add('hide');
   ovWin.classList.add('hide');
@@ -65,8 +67,10 @@ net.on('round', function(){
 });
 
 // The server caught us: it already respawned us at start; show the overlay.
-net.on('killed', function(){
+net.on('killed', function(m){
   if (state.phase === 'over') return;   // round already ending
+  document.getElementById('deathTitle').textContent =
+    (m && m.by === 'fireball') ? (m.byName || 'Someone') + ' burned you' : 'A Darkness Eater found you';
   state.phase = 'dead';
   spawnAtStart(net.startT);
   Sfx.sting();
@@ -87,6 +91,18 @@ net.on('roundOver', function(m){
   var mine = m.winnerId === net.id;
   winTitle.textContent = mine ? 'The Heart of the Maze is yours'
                               : (m.winnerName || 'Someone') + ' claimed the Heart';
+  // round summary: pot breakdown, winner payout, per-player net
+  var box = document.getElementById('summaryBox');
+  if (m.players){
+    var head = 'Pot ' + (m.pot || 0) + (m.topup ? ' + ' + m.topup + ' bonus' : '') +
+               ' → ' + (m.winnerName || '—') + ' won ' + (m.target || 0) + ' CDF';
+    var rows = m.players.slice().sort(function(a, b){ return b.net - a.net; }).map(function(p){
+      var me = p.id === net.id;
+      return '<div class="' + (me ? 'me' : '') + '">' + (me ? '▸ ' : '') + p.name + ' &nbsp; ' +
+             (p.net >= 0 ? '+' : '') + p.net + '</div>';
+    }).join('');
+    box.innerHTML = '<div style="color:var(--gold);margin-bottom:8px">' + head + '</div>' + rows;
+  } else box.innerHTML = '';
   ovDeath.classList.add('hide');
   ovWin.classList.remove('hide');
   if (document.exitPointerLock) document.exitPointerLock();

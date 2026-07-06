@@ -11,11 +11,27 @@
 // camera stays smooth regardless of frame rate.
 import { THREE } from './three.js';
 import { EYE, WALK, SPRINT, INPUT_STEP } from '../shared/config.js';
+import { FIREBALL_COOLDOWN } from '../shared/economy.js';
 import { WX } from '../shared/maze.js';
 import { moveStep } from '../shared/movement.js';
 import { Sfx } from './audio.js';
 import { camera, canvas, scene, makeGlow } from './scene.js';
 import { state } from './state.js';
+import { net } from './net.js';
+
+var lastThrow = -999, fbFlare = null;
+// throw a fireball in the look direction (server validates inventory/cooldown)
+export function throwFireball(){
+  if (state.phase !== 'playing' || state.uiBusy || net.spectating) return;
+  if (net.wallet.fireballs <= 0){ Sfx.blip(); return; }
+  var now = (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000;
+  if (now - lastThrow < FIREBALL_COOLDOWN) return;      // client-side rate limit (server also enforces)
+  lastThrow = now;
+  net.throwFireball(player.yaw);
+  Sfx.whisper();
+  if (!fbFlare) fbFlare = document.getElementById('fbflare');
+  if (fbFlare){ fbFlare.style.opacity = 0.5; setTimeout(function(){ fbFlare.style.opacity = 0; }, 120); }
+}
 
 var STEP = INPUT_STEP;          // fixed input timestep (seconds)
 var MAX_STEPS = 5;              // per-frame step cap (drops backlog after a stall)
@@ -82,9 +98,9 @@ window.addEventListener('blur', function(){ keys = {}; dragging = false; });
 var dragging = false, lastMX = 0, lastMY = 0;
 canvas.addEventListener('mousedown', function(e){
   dragging = true; lastMX = e.clientX; lastMY = e.clientY;
-  if (state.phase === 'playing' && document.pointerLockElement !== canvas){
-    try { var pl = canvas.requestPointerLock(); if (pl && pl.catch) pl.catch(function(){}); } catch (err) {}
-  }
+  if (state.phase !== 'playing') return;
+  if (document.pointerLockElement === canvas){ if (e.button === 0) throwFireball(); }   // locked -> throw
+  else { try { var pl = canvas.requestPointerLock(); if (pl && pl.catch) pl.catch(function(){}); } catch (err) {} }
 });
 window.addEventListener('mouseup', function(){ dragging = false; });
 window.addEventListener('mousemove', function(e){
@@ -145,6 +161,7 @@ function buildCmd(sdt){
   if (keys.ArrowLeft) player.yaw += 2.4 * sdt;
   if (keys.ArrowRight) player.yaw -= 2.4 * sdt;
   f += -mvVec.y; s += mvVec.x;
+  if (state.uiBusy || net.spectating){ f = 0; s = 0; }   // wallet open / spectating: don't move
   var len = Math.sqrt(f * f + s * s);
   player.moving = len > 0.01;
   var wantSprint = (keys.ShiftLeft || keys.ShiftRight || len > 1.4) && player.moving;
