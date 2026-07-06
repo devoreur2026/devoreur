@@ -6,7 +6,7 @@
 // (anti wall-clip), and a per-player time budget bounds total movement to real
 // elapsed time (+ a little slack for jitter/batched packets). Nothing is
 // "rejected" for lag — only clamped. Teleports are structurally impossible.
-import { SPRINT, RESPAWN_INVULN, MAX_CMD_DT, MOVE_BUDGET_MAX, INPUT_STEP } from '../shared/config.js';
+import { SPRINT, RESPAWN_INVULN, MAX_CMD_DT, MOVE_BUDGET_MAX, INPUT_STEP, MAX_HEALTH } from '../shared/config.js';
 import { moveStep } from '../shared/movement.js';
 
 var PALETTE = [
@@ -30,6 +30,9 @@ export class ServerPlayer {
     this.ws = ws;
     this.x = 0; this.z = 0; this.yaw = 0;
     this.deaths = 0;
+    this.health = MAX_HEALTH;          // server-authoritative; full here + reset on every spawn
+    this.lastAttacker = null;          // { account, name, id } of the last fireball hitter (kill credit)
+    this.eaterHitCd = 0;               // spacing between continuous eater-contact hits
     this.invuln = RESPAWN_INVULN;
     this.speed = 0;          // server-measured, used for eater hearing
     this.lastSeq = 0;        // last input sequence processed (acked to the client)
@@ -42,6 +45,9 @@ export class ServerPlayer {
 
   spawnAt(wx, wz){
     this.x = wx; this.z = wz; this.speed = 0;
+    this.health = MAX_HEALTH;          // full health on every (re)spawn
+    this.lastAttacker = null;
+    this.eaterHitCd = 0;
     this.invuln = RESPAWN_INVULN;
     this.budget = INPUT_STEP;
     this.tile = -1; this.field = null; this.fieldT = 0;
@@ -84,6 +90,7 @@ export class ServerPlayer {
       id: this.id, name: this.name, color: this.color,
       x: +this.x.toFixed(3), z: +this.z.toFixed(3), yaw: +this.yaw.toFixed(3),
       deaths: this.deaths, invuln: this.invuln > 0 ? 1 : 0,
+      hp: this.health,                                    // server-authoritative health
       spec: this.paid ? 0 : 1,                            // spectator this round?
       ack: this.lastSeq                                   // last input the client can prune/replay from
     };

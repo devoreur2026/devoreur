@@ -5,7 +5,7 @@ import { Room } from '../server/room.js';
 import { Bank } from '../server/bank.js';
 import { WX, TX, id as cellId } from '../shared/maze.js';
 import { ENTRY_BASE, ENTRY_PER_MINUTE, ENTRY_CLOSE, BONUS_POT, entryPrice } from '../shared/economy.js';
-import { SPAWN_MIN_PLAYER_DIST, SPAWN_HEART_FRAC } from '../shared/config.js';
+import { SPAWN_MIN_PLAYER_DIST, SPAWN_HEART_FRAC, MAX_HEALTH, EATER_DAMAGE } from '../shared/config.js';
 
 var passed = 0, failed = 0;
 function ok(c, m){ if (c) passed++; else { failed++; console.log('  ✗ ' + m); } }
@@ -31,10 +31,15 @@ console.log('— open entry: funded players enter on join; pot / eater-kill / pa
   ok(wa.last('spawn') && typeof wa.last('spawn').x === 'number', 'server sent A a spawn point');
 
   B.invuln = 0;
-  room.kill(B.id);
-  eq(bank.wallet('B').credit, 3750, 'eater kill takes 250');
-  eq(room.potBalance(), 1525, 'pot += 125');
+  room.hitByEater(B.id);                            // hit 1: half damage, no death/penalty
+  eq(B.health, MAX_HEALTH - EATER_DAMAGE, 'eater contact takes half health');
+  eq(bank.wallet('B').credit, 4000, 'no penalty on a non-lethal eater hit');
+  B.eaterHitCd = 0;                                 // (in-game the contact cooldown spaces these)
+  room.hitByEater(B.id);                            // hit 2: killing blow
+  eq(bank.wallet('B').credit, 3750, 'eater kill takes 250 ONCE (on the killing blow)');
+  eq(room.potBalance(), 1525, 'pot += 125 (eater 50/50)');
   ok(wb.last('spawn'), 'respawn sends a fresh spawn point');
+  eq(B.health, MAX_HEALTH, 'respawn restores full health');
 
   room.endRound(A);
   eq(bank.wallet('A').earnings, 1525, 'winner earnings = pot (<5)');

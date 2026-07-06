@@ -16,6 +16,11 @@ export var MAX_PLAYERS = 12;             // per room
 export var WIN_DIST = 2.0;               // reach the treasure within this
 export var RESPAWN_INVULN = 3;           // seconds of grace after (re)spawn
 export var ROUND_COUNTDOWN = 10;         // seconds between rounds
+// health & damage (server-authoritative; full on spawn/respawn, no regen)
+export var MAX_HEALTH = 6;               // full health
+export var FIREBALL_DAMAGE = 2;          // 1/3 of max -> 3 fireball hits kill
+export var EATER_DAMAGE = 3;             // 1/2 of max -> 2 eater contacts kill
+export var EATER_HIT_INTERVAL = 1.0;     // min seconds between eater contact hits (contact is continuous)
 // randomized spawns (open, public map): far from the Heart and from other players
 export var SPAWN_HEART_FRAC = 0.45;      // spawn at least this fraction of the treasure BFS depth away
 export var SPAWN_MIN_PLAYER_DIST = 14;   // world units from any active player

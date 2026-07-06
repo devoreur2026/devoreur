@@ -7,7 +7,8 @@
 import { generateMaze, WX, TX, id } from '../shared/maze.js';
 import {
   TICK_DT, MAX_PLAYERS, WIN_DIST, FIELD_REFRESH, ROUND_COUNTDOWN,
-  SPAWN_HEART_FRAC, SPAWN_MIN_PLAYER_DIST
+  SPAWN_HEART_FRAC, SPAWN_MIN_PLAYER_DIST,
+  FIREBALL_DAMAGE, EATER_DAMAGE, EATER_HIT_INTERVAL
 } from '../shared/config.js';
 import {
   BONUS_POT, bonusUnlocked, entryPrice, entriesOpen, ROUND_LIMIT,
@@ -187,12 +188,12 @@ export class Room {
       fb.x = nx; fb.z = nz;
       var victim = null;
       for (var pw of this.players.values()){
-        if (pw.id === fb.owner || !pw.paid || pw.invuln > 0) continue;   // no self-hit, no eaters, no invuln
+        if (pw.id === fb.owner || !pw.paid || pw.invuln > 0 || pw.health <= 0) continue;   // no self/ghost/invuln/dead
         var dx = pw.x - fb.x, dz = pw.z - fb.z;
         if (dx * dx + dz * dz < FIREBALL_HIT_R * FIREBALL_HIT_R){ victim = pw; break; }
       }
       if (victim){
-        this.fireballKill(fb, victim);
+        this.hitByFireball(fb, victim);                 // applies damage; death fires once if it drops to 0
         this.broadcast({ t: MSG.FIREBALL_END, id: fb.id, x: fb.x, z: fb.z, hit: 1 });
         continue;
       }
@@ -201,17 +202,51 @@ export class Room {
     this.fireballs = alive;
   }
 
-  // one hit kills: normal death flow + PvP kill economy + kill feed
-  fireballKill(fb, victim){
-    var killer = this.players.get(fb.owner);
-    var killId = this.roundId + ':f:' + (++this.killSeq);
-    this.bank.killByFireball(victim.account, fb.ownerAccount, this.roundId, killId);
+  // A fireball landed: credit the attacker (for the killing-blow) and apply
+  // damage. Death, if the hit drops health to 0, fires the economy once in die().
+  hitByFireball(fb, victim){
+    victim.lastAttacker = { account: fb.ownerAccount, name: fb.ownerName, id: fb.owner };
+    this.damage(victim, FIREBALL_DAMAGE, 'fireball');
+  }
+
+  // Continuous eater contact -> apply EATER_DAMAGE at most once per interval.
+  hitByEater(pid){
+    var p = this.players.get(pid);
+    if (!p || !p.paid || p.invuln > 0 || p.health <= 0 || p.eaterHitCd > 0) return;
+    p.eaterHitCd = EATER_HIT_INTERVAL;
+    this.damage(p, EATER_DAMAGE, 'eater');
+  }
+
+  // Apply damage. Ghosts, invulnerable, and already-dead players are immune, so
+  // a second hit in the same tick can't re-trigger death. Health is the source
+  // of truth (broadcast in snapshots); the client never decides it.
+  damage(victim, amount, cause){
+    if (!victim.paid || victim.invuln > 0 || victim.health <= 0) return;
+    victim.health = Math.max(0, victim.health - amount);
+    if (victim.health === 0) this.die(victim, cause);
+  }
+
+  // Killing blow: economy fires ONCE here (250 penalty + split). spawnPlayer
+  // then respawns full + invulnerable, so any same-tick follow-up hit no-ops.
+  die(victim, cause){
     victim.deaths++;
-    this.spawnPlayer(victim);                     // respawn at a fresh random spot (sends SPAWN)
-    this.send(victim.ws, { t: MSG.KILLED, by: 'fireball', byName: fb.ownerName });
-    this.sendWallet(victim);
-    if (killer) this.sendWallet(killer);
-    this.broadcast({ t: MSG.KILLFEED, text: fb.ownerName + ' burned ' + victim.name });
+    if (cause === 'fireball'){
+      var atk = victim.lastAttacker || { account: null, name: 'Someone', id: 0 };
+      var killId = this.roundId + ':f:' + (++this.killSeq);
+      this.bank.killByFireball(victim.account, atk.account, this.roundId, killId);
+      this.spawnPlayer(victim);                    // resets health + invuln (sends SPAWN)
+      this.send(victim.ws, { t: MSG.KILLED, by: 'fireball', byName: atk.name });
+      this.sendWallet(victim);
+      var killer = this.players.get(atk.id);
+      if (killer) this.sendWallet(killer);
+      this.broadcast({ t: MSG.KILLFEED, text: atk.name + ' burned ' + victim.name });
+    } else {
+      var killId2 = this.roundId + ':e:' + (++this.killSeq);
+      this.bank.killByEater(victim.account, this.roundId, killId2);
+      this.spawnPlayer(victim);
+      this.send(victim.ws, { t: MSG.KILLED, by: 'eater' });
+      this.sendWallet(victim);
+    }
   }
 
   refreshFields(dt){
@@ -223,20 +258,6 @@ export class Room {
         p.tile = tile; p.fieldT = FIELD_REFRESH;
       }
     }
-  }
-
-  // killed by a Darkness Eater: 50% house / 50% pot (only if the victim paid in)
-  kill(pid){
-    var p = this.players.get(pid);
-    if (!p || p.invuln > 0) return;
-    if (p.paid){
-      var killId = this.roundId + ':e:' + (++this.killSeq);
-      this.bank.killByEater(p.account, this.roundId, killId);
-      this.sendWallet(p);
-    }
-    p.deaths++;
-    this.spawnPlayer(p);                          // respawn at a fresh random spot (sends SPAWN)
-    this.send(p.ws, { t: MSG.KILLED, by: 'eater' });
   }
 
   // winner may be null -> time limit hit, pot rolls into the next round
@@ -288,13 +309,14 @@ export class Room {
     for (var p of this.players.values()){
       p.invuln = Math.max(0, p.invuln - dt);
       p.throwCd = Math.max(0, p.throwCd - dt);
+      p.eaterHitCd = Math.max(0, p.eaterHitCd - dt);
       arr.push({ id: p.id, x: p.x, z: p.z, invuln: p.invuln, speed: p.speed, paid: p.paid, flare: (p.flareUntil || 0) > this.t });
     }
 
     var self = this;
     this.eaters.update(dt, this.t, arr,
       function(pid){ var pp = self.players.get(pid); return pp ? pp.field : null; },
-      function(pid){ self.kill(pid); });
+      function(pid){ self.hitByEater(pid); });
 
     this.stepFireballs(dt);
 
