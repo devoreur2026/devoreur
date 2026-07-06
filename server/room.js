@@ -8,7 +8,8 @@ import { generateMaze, WX, TX, id } from '../shared/maze.js';
 import {
   TICK_DT, MAX_PLAYERS, WIN_DIST, FIELD_REFRESH, ROUND_COUNTDOWN,
   SPAWN_HEART_FRAC, SPAWN_MIN_PLAYER_DIST,
-  FIREBALL_DAMAGE, EATER_DAMAGE, EATER_HIT_INTERVAL
+  FIREBALL_DAMAGE, EATER_DAMAGE, EATER_HIT_INTERVAL,
+  KEEPER_COUNT, EATER_ADD_INTERVAL
 } from '../shared/config.js';
 import {
   BONUS_POT, bonusUnlocked, entryPrice, entriesOpen, ROUND_LIMIT,
@@ -304,6 +305,10 @@ export class Room {
 
     this.t += dt;
     this.refreshFields(dt);
+
+    // escalate the hunt: a new eater joins every EATER_ADD_INTERVAL (5 min)
+    var wantEaters = KEEPER_COUNT + Math.floor(this.t / EATER_ADD_INTERVAL);
+    while (this.eaters.count < wantEaters) this.eaters.addEater();
 
     var arr = [];
     for (var p of this.players.values()){

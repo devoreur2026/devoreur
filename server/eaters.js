@@ -9,25 +9,41 @@ export class Eaters {
   constructor(maze, dS, best, rnd){
     this.maze = maze;
     this.rnd = rnd;
+    this.dS = dS;
+    this.best = best;
     this.list = [];
     var placed = [];
-    for (var i = 0; i < KEEPER_COUNT; i++){
-      var t = null, tries = 0;
-      while (tries++ < 60){
-        var cand = maze.randOpenCell(dS, best * 0.3, best * 0.95, rnd), ok = true;
-        for (var j = 0; j < placed.length; j++){
-          if (Math.abs(placed[j].x - cand.x) + Math.abs(placed[j].z - cand.z) < 10){ ok = false; break; }
-        }
-        if (ok){ t = cand; break; }
+    for (var i = 0; i < KEEPER_COUNT; i++) this._spawn(placed);
+  }
+
+  get count(){ return this.list.length; }
+
+  // Place one eater a safe distance from the spawn and from the `placed` cells.
+  _spawn(placed){
+    var maze = this.maze, dS = this.dS, best = this.best, rnd = this.rnd;
+    var t = null, tries = 0;
+    while (tries++ < 60){
+      var cand = maze.randOpenCell(dS, best * 0.3, best * 0.95, rnd), ok = true;
+      for (var j = 0; j < placed.length; j++){
+        if (Math.abs(placed[j].x - cand.x) + Math.abs(placed[j].z - cand.z) < 10){ ok = false; break; }
       }
-      if (!t) t = maze.randOpenCell(dS, best * 0.3, best * 0.95, rnd);
-      placed.push(t);
-      this.list.push({
-        a: makeAgent(maze, t.x, t.z, EATER_PATROL),
-        state: 'patrol', lost: 0, senseT: rnd() * 0.15,
-        targetId: null, ry: 0
-      });
+      if (ok){ t = cand; break; }
     }
+    if (!t) t = maze.randOpenCell(dS, best * 0.3, best * 0.95, rnd);
+    placed.push(t);
+    this.list.push({
+      a: makeAgent(maze, t.x, t.z, EATER_PATROL),
+      state: 'patrol', lost: 0, senseT: rnd() * 0.15,
+      targetId: null, ry: 0
+    });
+    return this.list.length;
+  }
+
+  // Add one eater mid-round, spaced away from the current eaters.
+  addEater(){
+    var placed = [];
+    for (var i = 0; i < this.list.length; i++) placed.push({ x: this.list[i].a.tx, z: this.list[i].a.tz });
+    return this._spawn(placed);
   }
 
   pickChase(field, a){
