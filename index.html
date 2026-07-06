@@ -145,6 +145,7 @@
   #cashSection .auth-input{margin:4px 0}
   .attest{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--dim);margin:6px 0;cursor:pointer}
   .payMsg{font-size:12px;color:var(--gold);min-height:1.1em;margin-top:6px;line-height:1.5}
+  .payHint{font-size:11px;color:#8b8fa3;letter-spacing:.02em;margin:2px 2px 0;text-align:left}
   .payHistory{margin-top:8px;max-height:130px;overflow:auto}
   .payHistory .prow{display:flex;justify-content:space-between;align-items:center;gap:8px;
     font-size:12px;padding:4px 0;border-top:1px solid rgba(233,227,209,.08)}
@@ -305,6 +306,7 @@
     </div>
     <select id="payProvider" class="auth-input"></select>
     <input id="payPhone" class="auth-input" inputmode="tel" placeholder="mobile money number">
+    <div id="payPhoneHint" class="payHint"></div>
     <input id="payAmount" class="auth-input" inputmode="numeric" placeholder="amount CDF">
     <label id="attestRow" class="attest hide"><input type="checkbox" id="attestChk"> I confirm I am 18+ and accept the Terms.</label>
     <button class="btn" id="payBtn">Deposit</button>

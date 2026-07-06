@@ -2,7 +2,7 @@
 // we only POST a request and then poll/refresh status. The whole section is
 // hidden unless the server reports payments enabled.
 import { auth } from './auth.js';
-import { STATUS } from '../shared/payments.js';
+import { STATUS, providerByKey, normalizePhone } from '../shared/payments.js';
 
 function el(id){ return document.getElementById(id); }
 var cfg = null;
@@ -62,6 +62,11 @@ function setTab(tab){
   el('payAmount').placeholder = 'amount CDF (min ' + (tab === 'deposit' ? cfg.depositMin : cfg.withdrawMin) + ')';
   msg('');
 }
+// show the selected provider's required phone format under the number field
+function updateHint(){
+  var p = providerByKey(el('payProvider').value);
+  el('payPhoneHint').textContent = p ? ('Format: ' + p.hint) : '';
+}
 
 function statusClass(p){
   if (p.status === STATUS.SUCCESS) return 'ok';
@@ -91,6 +96,7 @@ export async function refreshPayments(){
   if (!c || !c.enabled){ sec.classList.add('hide'); return; }   // hidden unless enabled
   sec.classList.remove('hide');
   fillProviders();
+  updateHint();
   if (!ui.tabInit){ setTab('deposit'); ui.tabInit = true; }
   var me = await api('/api/pay/me');
   ui.attested = !!(me.data && me.data.attested);
@@ -102,8 +108,12 @@ async function submit(){
   var amount = parseInt(el('payAmount').value, 10) || 0;
   var provider = el('payProvider').value;
   var phone = el('payPhone').value.trim();
-  if (amount <= 0){ msg('Enter a valid amount.', 'bad'); return; }
-  if (!phone){ msg('Enter your mobile money number.', 'bad'); return; }
+  var min = ui.tab === 'deposit' ? cfg.depositMin : cfg.withdrawMin;
+  if (amount < min){ msg('Minimum is ' + min + ' CDF.', 'bad'); return; }
+  // validate/normalize the phone for the chosen provider BEFORE any money request
+  var v = normalizePhone(provider, phone);
+  if (!v.ok){ msg(v.reason, 'bad'); return; }
+  phone = v.phone;
   if (!ui.attested){
     if (!el('attestChk').checked){ msg('Please confirm you are 18+ and accept the Terms.', 'bad'); return; }
     var a = await api('/api/pay/attest', 'POST', { accept: true });
@@ -129,6 +139,7 @@ async function submit(){
 export function initPaymentsUi(){
   el('tabDeposit').addEventListener('click', function(){ setTab('deposit'); });
   el('tabWithdraw').addEventListener('click', function(){ setTab('withdraw'); });
+  el('payProvider').addEventListener('change', updateHint);
   el('payBtn').addEventListener('click', submit);
   // the wallet panel dispatches this when opened
   document.addEventListener('umbra-wallet-open', function(){ refreshPayments(); });
