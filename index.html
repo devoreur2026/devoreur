@@ -186,11 +186,15 @@
     #hunters{display:none}
     #hint{font-size:9px;letter-spacing:.18em;bottom:20px}
     #timer{font-size:12px;letter-spacing:.1em}
-    #topL{top:12px;left:12px}
+    /* declutter the top: one strip per row, no overlap */
+    #topL{top:10px;left:10px}
     #topL .tag,.tag{font-size:8px;letter-spacing:.22em}
-    #walletBar{top:34px;left:12px;font-size:10px;letter-spacing:.05em}
-    #potBar{top:32px;font-size:10px;letter-spacing:.08em}
-    #killfeed{top:34px;right:12px;font-size:10px;line-height:1.5}
+    #whoami{display:none}                          /* you know who you are in-game */
+    #topR{top:8px;right:8px}
+    #walletBar{top:42px;left:10px;font-size:10px;letter-spacing:.04em}       /* row 2 left */
+    #potBar{top:63px;left:10px;right:auto;transform:none;text-align:left;     /* row 3, full width */
+      font-size:10px;letter-spacing:.06em;white-space:nowrap}
+    #killfeed{top:42px;right:10px;font-size:10px;line-height:1.5;max-width:50vw}  /* row 2 right */
     #stamWrap,#healthWrap{width:140px}
     #stamWrap{bottom:46px}
     #healthWrap{bottom:55px;height:7px}
