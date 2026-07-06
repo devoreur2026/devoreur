@@ -83,6 +83,7 @@ export class ServerPlayer {
       id: this.id, name: this.name, color: this.color,
       x: +this.x.toFixed(3), z: +this.z.toFixed(3), yaw: +this.yaw.toFixed(3),
       deaths: this.deaths, invuln: this.invuln > 0 ? 1 : 0,
+      spec: this.paid ? 0 : 1,                            // spectator this round?
       ack: this.lastSeq                                   // last input the client can prune/replay from
     };
   }

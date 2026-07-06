@@ -53,7 +53,7 @@ export function updateHud(dt){
     var html = '';
     for (var i = 0; i < net.players.length; i++){
       var p = net.players[i];
-      if (p.id === net.id) continue;
+      if (p.id === net.id || p.spec) continue;   // skip yourself + spectators
       var d = Math.round(Math.sqrt((p.x - player.x) * (p.x - player.x) + (p.z - player.z) * (p.z - player.z)));
       html += '<div><span class="nm" style="color:#' + new THREE.Color(p.color).getHexString() + '">' +
               p.name + '</span><span class="ds">' + d + 'm</span></div>';

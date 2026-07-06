@@ -16,23 +16,28 @@ net.on('wallet', function(w){
   el('wFb').textContent = w.fireballs;
   if (!el('ovWallet').classList.contains('hide')) refreshPanel();
 });
+/* ---- spectate banner (driven by net.spectating every snapshot, so it can
+       never get stuck out of sync with the server) ---- */
+var specReason = 'midround';
+net.on('spectate', function(m){ specReason = (m && m.reason) || 'midround'; });
+
 net.on('state', function(){
   var e = net.econ || {};
   el('potVal').textContent = e.pot || 0;
   var bv = el('bonusVal');
   if (e.paid >= 5){ bv.textContent = 'BONUS ' + (e.bonusPot || 10000) + ' unlocked'; bv.className = 'unlocked'; }
   else { bv.textContent = 'BONUS ' + (e.bonusPot || 10000) + ' 🔒 ' + (e.paid || 0) + '/5'; bv.className = 'locked'; }
-});
 
-/* ---- spectate banner ---- */
-net.on('spectate', function(m){
   var b = el('spectateBanner');
-  b.textContent = m.reason === 'insufficient'
-    ? 'Not enough Credit to enter (1000 CDF needed). Spectating — top up in your wallet ◈.'
-    : 'Joined mid-round — you play from the next round.';
-  b.classList.remove('hide');
+  if (net.spectating){
+    b.innerHTML = (specReason === 'insufficient')
+      ? '<b>◉ SPECTATING</b>Not enough Credit to enter (need 1000). Open your wallet ◈ to add Credit — you join the next round.'
+      : '<b>◉ SPECTATING</b>You joined mid-round. You play from the next round — roam and watch for now.';
+    b.classList.remove('hide');
+  } else {
+    b.classList.add('hide');
+  }
 });
-net.on('round', function(){ el('spectateBanner').classList.add('hide'); });
 
 /* ---- kill feed ---- */
 net.on('killfeed', function(text){

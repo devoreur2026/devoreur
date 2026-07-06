@@ -51,6 +51,7 @@ export class Eaters {
       var nearest = null, nearestD = 1e9, noticed = null, noticedD = 1e9;
       for (var p = 0; p < players.length; p++){
         var pl = players[p];
+        if (pl.paid === false) continue;              // spectators are ghosts — eaters ignore them
         var dx = pl.x - a.px, dz = pl.z - a.pz, d = Math.sqrt(dx * dx + dz * dz);
         if (d < nearestD){ nearestD = d; nearest = pl; }
         if (pl.invuln > 0) continue;

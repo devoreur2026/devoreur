@@ -16,6 +16,7 @@ export var MAX_PLAYERS = 12;             // per room
 export var WIN_DIST = 2.0;               // reach the treasure within this
 export var RESPAWN_INVULN = 3;           // seconds of grace after (re)spawn
 export var ROUND_COUNTDOWN = 10;         // seconds between rounds
+export var JOIN_GRACE = 5;               // you can still pay into a round this many seconds after it starts
 export var FIELD_REFRESH = 0.35;         // how often a player's chase field is rebuilt
 
 // --- input / prediction ---

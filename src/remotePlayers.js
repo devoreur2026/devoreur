@@ -30,7 +30,7 @@ export function sync(players, selfId){
   var seen = {};
   for (var i = 0; i < players.length; i++){
     var p = players[i];
-    if (p.id === selfId) continue;
+    if (p.id === selfId || p.spec) continue;   // don't render yourself or spectators (ghosts)
     seen[p.id] = true;
     var e = entries.get(p.id);
     if (!e){

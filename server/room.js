@@ -6,7 +6,7 @@
 // touches balances directly.
 import { generateMaze, WX, TX, id } from '../shared/maze.js';
 import {
-  TICK_DT, MAX_PLAYERS, WIN_DIST, FIELD_REFRESH, ROUND_COUNTDOWN
+  TICK_DT, MAX_PLAYERS, WIN_DIST, FIELD_REFRESH, ROUND_COUNTDOWN, JOIN_GRACE
 } from '../shared/config.js';
 import {
   ENTRY_FEE, BONUS_POT, bonusUnlocked,
@@ -88,12 +88,26 @@ export class Room {
     var pid = nextPlayerId++;
     var p = new ServerPlayer(pid, name, this.players.size, ws, account);
     p.spawnAt(this.startWX.x, this.startWX.z);
-    p.paid = false;                      // mid-round joiner: waits for the next paid round
+    p.paid = false;
     this.players.set(pid, p);
     this.send(ws, { t: MSG.WELCOME, id: pid, color: p.color, name: p.name });
     this.send(ws, this.roundMsg());
+
+    // Enter the live round if it's still joinable: nobody's paid in yet (the
+    // room's opening round, or one everyone left), or we're within JOIN_GRACE
+    // of when the round actually started. Otherwise spectate until the next
+    // round (everyone present is charged at newRound). This is what stops a
+    // funded player being frozen as a spectator of a phantom 0-player round.
+    if (this.phase === PHASE.PLAYING && (this.paidCount === 0 || this.t < JOIN_GRACE)){
+      var wasEmpty = this.paidCount === 0;
+      var res = this.bank.enterRound(p.account, this.roundId);
+      p.paid = res.ok;
+      if (res.ok){ this.paidCount++; if (wasEmpty) this.t = 0; }    // start the round clock on first entry
+      else this.send(ws, { t: MSG.SPECTATE, reason: 'insufficient', fee: ENTRY_FEE });
+    } else if (this.phase === PHASE.PLAYING){
+      this.send(ws, { t: MSG.SPECTATE, reason: 'midround' });
+    }
     this.sendWallet(p);
-    if (this.phase === PHASE.PLAYING) this.send(ws, { t: MSG.SPECTATE, reason: 'midround' });
     return p;
   }
 
@@ -246,7 +260,7 @@ export class Room {
     for (var p of this.players.values()){
       p.invuln = Math.max(0, p.invuln - dt);
       p.throwCd = Math.max(0, p.throwCd - dt);
-      arr.push({ id: p.id, x: p.x, z: p.z, invuln: p.invuln, speed: p.speed, flare: (p.flareUntil || 0) > this.t });
+      arr.push({ id: p.id, x: p.x, z: p.z, invuln: p.invuln, speed: p.speed, paid: p.paid, flare: (p.flareUntil || 0) > this.t });
     }
 
     var self = this;

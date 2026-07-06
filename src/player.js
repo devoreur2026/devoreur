@@ -161,7 +161,7 @@ function buildCmd(sdt){
   if (keys.ArrowLeft) player.yaw += 2.4 * sdt;
   if (keys.ArrowRight) player.yaw -= 2.4 * sdt;
   f += -mvVec.y; s += mvVec.x;
-  if (state.uiBusy || net.spectating){ f = 0; s = 0; }   // wallet open / spectating: don't move
+  if (state.uiBusy){ f = 0; s = 0; }        // only the wallet overlay locks movement (spectators may roam)
   var len = Math.sqrt(f * f + s * s);
   player.moving = len > 0.01;
   var wantSprint = (keys.ShiftLeft || keys.ShiftRight || len > 1.4) && player.moving;

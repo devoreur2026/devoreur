@@ -15,7 +15,6 @@ console.log('— fireball validation (inventory, cooldown, paid)');
   var room = new Room('t', bank); clearInterval(room.timer);
   bank.grant('A', 5000, 'gA');
   var A = room.addPlayer('ALICE', 'A', mkws());
-  room.newRound();                                  // A paid
   bank.buyFireballs('A', 1, 'buy1');                // 10 fireballs
   eq(bank.fireballs('A'), 10, 'bought a pack of 10');
 
@@ -41,7 +40,6 @@ console.log('— fireball hit -> kill + PvP economy + kill feed');
   var wa = mkws(), wb = mkws();
   var A = room.addPlayer('ALICE', 'A', wa);
   var B = room.addPlayer('BOB', 'B', wb);
-  room.newRound();                                  // both paid, credit 4000
   bank.buyFireballs('A', 1, 'buy1');
 
   // aim down an OPEN corridor from spawn, place BOB just ahead
