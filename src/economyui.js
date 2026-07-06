@@ -90,33 +90,52 @@ async function walletHttp(path, method, body){
   });
   try { return await res.json(); } catch (e) { return null; }
 }
+function applyWallet(d){                       // apply an HTTP wallet response everywhere
+  setBalances(d.credit, d.earnings, d.fireballs);
+  renderWalletHistory(d.history);
+  net.wallet = { credit: d.credit, earnings: d.earnings, fireballs: d.fireballs };   // keep top bar + fireball-throw in sync
+}
 async function loadWalletHttp(){
   var d = await walletHttp('/api/wallet');
-  if (d && d.ok){ setBalances(d.credit, d.earnings, d.fireballs); renderWalletHistory(d.history); }
+  if (d && d.ok) applyWallet(d);
 }
+function walletMsg(t, bad){ var m = el('walletMsg'); if (m){ m.textContent = t || ''; m.style.color = bad ? '#e8574a' : 'var(--gold)'; } }
 
 function openWallet(standalone){
   walletMode = standalone ? 'standalone' : 'game';
   state.uiBusy = true;
   el('ovWallet').classList.remove('hide');
   if (document.exitPointerLock) document.exitPointerLock();
-  el('shopBtn').classList.toggle('hide', !!standalone);   // fireballs are in-game only
-  if (standalone) loadWalletHttp();
-  else { refreshPanel(); net.requestHistory(); }
+  walletMsg('');
+  loadWalletHttp();                           // balances + history over HTTP — works in-game AND from home
   document.dispatchEvent(new Event('umbra-wallet-open'));  // let the payments UI refresh
 }
 function closeWallet(){ state.uiBusy = false; el('ovWallet').classList.add('hide'); }
 el('coinBtn').addEventListener('click', function(){ el('ovWallet').classList.contains('hide') ? openWallet(false) : closeWallet(); });
 el('walletBtn').addEventListener('click', function(){ openWallet(true); });   // from the home screen
 el('walletClose').addEventListener('click', closeWallet);
+
+// Earnings -> Credit over HTTP (works from the home screen too, not just in-game,
+// where there'd be no socket). Idempotent per nonce; clear feedback on failure.
 el('xferBtn').addEventListener('click', function(){
-  var a = parseInt(el('xferAmt').value, 10) || 0; if (a <= 0) return; el('xferAmt').value = '';
-  if (walletMode === 'standalone'){
-    walletHttp('/api/wallet/transfer', 'POST', { amount: a, nonce: net.nonce() })
-      .then(function(d){ if (d && d.ok){ setBalances(d.credit, d.earnings, d.fireballs); renderWalletHistory(d.history); } });
-  } else { net.transfer(a); }
+  var a = parseInt(el('xferAmt').value, 10) || 0;
+  if (a <= 0){ walletMsg('Enter an amount to move.', true); return; }
+  var btn = this; btn.disabled = true;
+  walletHttp('/api/wallet/transfer', 'POST', { amount: a, nonce: net.nonce() }).then(function(d){
+    btn.disabled = false;
+    if (d && d.ok){ applyWallet(d); el('xferAmt').value = ''; walletMsg('Moved ' + a + ' to Credit.'); }
+    else walletMsg(d && d.reason === 'insufficient' ? 'Not enough Earnings to move that.' : 'Could not move funds — try again.', true);
+  });
 });
-el('shopBtn').addEventListener('click', function(){ this.disabled = true; net.buyFireballs(); var b = this; setTimeout(function(){ b.disabled = false; }, 400); });
+// Buy a pack of 10 fireballs over HTTP; the inventory persists on your account.
+el('shopBtn').addEventListener('click', function(){
+  var btn = this; btn.disabled = true;
+  walletHttp('/api/wallet/shop', 'POST', { nonce: net.nonce() }).then(function(d){
+    btn.disabled = false;
+    if (d && d.ok){ applyWallet(d); walletMsg('Bought 10 fireballs.'); }
+    else walletMsg(d && d.reason === 'insufficient' ? 'Not enough Credit (100 needed).' : 'Purchase failed — try again.', true);
+  });
+});
 
 /* ---- mobile fire button ---- */
 if (window.matchMedia && window.matchMedia('(pointer:coarse)').matches){

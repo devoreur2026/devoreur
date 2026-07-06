@@ -40,7 +40,7 @@ export function makeWalletApi(opts){
   }
 
   return async function handle(req, res, urlPath){
-    if (urlPath !== '/api/wallet' && urlPath !== '/api/wallet/transfer') return false;
+    if (urlPath !== '/api/wallet' && urlPath !== '/api/wallet/transfer' && urlPath !== '/api/wallet/shop') return false;
     var user = await auth(req);
     if (!user){ sendJSON(res, 401, { ok: false, reason: 'unauthenticated' }); return true; }
     var account = user.sub;
@@ -55,6 +55,14 @@ export function makeWalletApi(opts){
       if (!b){ sendJSON(res, 400, { ok: false, reason: 'bad_body' }); return true; }
       var r = bank.transfer(account, b.amount | 0, 'http:' + (b.nonce || ''));   // idempotent per nonce
       if (!r.ok){ sendJSON(res, 400, { ok: false, reason: r.reason || 'failed' }); return true; }
+      sendJSON(res, 200, walletPayload(account));
+      return true;
+    }
+    if (urlPath === '/api/wallet/shop' && req.method === 'POST'){
+      var bs = await readBody(req);
+      if (!bs){ sendJSON(res, 400, { ok: false, reason: 'bad_body' }); return true; }
+      var rs = bank.buyFireballs(account, 1, 'http:' + (bs.nonce || ''));         // 1 pack (10), idempotent per nonce
+      if (!rs.ok){ sendJSON(res, 400, { ok: false, reason: rs.reason || 'failed' }); return true; }
       sendJSON(res, 200, walletPayload(account));
       return true;
     }
