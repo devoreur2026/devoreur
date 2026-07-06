@@ -9,35 +9,59 @@ export class UnipesaClient {
 
   async post(path, params){
     var signed = withSignature(params, this.cfg.secret);
-    var res = await this.fetch(this.url(path), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify(signed)
-    });
-    var text = await res.text();
+    var url = this.url(path);
+    // full outgoing request logged for real-payment debugging (signature is a
+    // hash; the secret key is never a param, so nothing sensitive leaks)
+    console.log('[unipesa] -> POST ' + url + '\n  body: ' + JSON.stringify(signed));
+    var res, text;
+    try {
+      res = await this.fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(signed)
+      });
+      text = await res.text();
+    } catch (e) {
+      console.error('[unipesa] <- NETWORK ERROR for ' + path + ': ' + (e && e.message));
+      throw e;
+    }
+    console.log('[unipesa] <- ' + res.status + ' ' + String(text).slice(0, 2000));
     var data; try { data = JSON.parse(text); } catch (e) { data = { raw: text }; }
     return { httpStatus: res.status, data: data };
   }
 
-  // deposit (customer-to-business); amount is integer CDF, formatted at the boundary
+  // deposit (customer-to-business). EXACT v5.7.2 doc fields, in doc order:
+  // merchant_id, customer_id(=phone), order_id, amount(string), currency,
+  // country, callback_url, provider_id(int), signature. public_id is in the URL.
   deposit(orderId, amount, providerId, phone, callbackUrl){
     return this.post('payment_c2b', {
-      public_id: this.cfg.publicId, merchant_id: this.cfg.merchantId, order_id: orderId,
-      amount: formatAmount(amount), currency: CURRENCY, country: COUNTRY,
-      provider: providerId, phone: phone, callback_url: callbackUrl
+      merchant_id: this.cfg.merchantId,
+      customer_id: phone,
+      order_id: orderId,
+      amount: formatAmount(amount),
+      currency: CURRENCY,
+      country: COUNTRY,
+      callback_url: callbackUrl,
+      provider_id: providerId
     });
   }
-  // withdrawal (business-to-customer)
+  // withdrawal (business-to-customer) — same field convention as C2B
   withdraw(orderId, amount, providerId, phone, callbackUrl){
     return this.post('payment_b2c', {
-      public_id: this.cfg.publicId, merchant_id: this.cfg.merchantId, order_id: orderId,
-      amount: formatAmount(amount), currency: CURRENCY, country: COUNTRY,
-      provider: providerId, phone: phone, callback_url: callbackUrl
+      merchant_id: this.cfg.merchantId,
+      customer_id: phone,
+      order_id: orderId,
+      amount: formatAmount(amount),
+      currency: CURRENCY,
+      country: COUNTRY,
+      callback_url: callbackUrl,
+      provider_id: providerId
     });
   }
   status(orderId){
     return this.post('status', {
-      public_id: this.cfg.publicId, merchant_id: this.cfg.merchantId, order_id: orderId
+      merchant_id: this.cfg.merchantId,
+      order_id: orderId
     });
   }
 }
