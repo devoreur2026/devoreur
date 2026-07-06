@@ -36,6 +36,10 @@
   #mute{pointer-events:auto;background:transparent;border:1px solid rgba(233,227,209,.25);
     color:var(--bone);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:13px;line-height:1}
   #mute:hover{border-color:var(--ember);color:var(--ember)}
+  #quitBtn{pointer-events:auto;background:transparent;border:1px solid rgba(233,227,209,.25);
+    color:var(--dim);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:13px;line-height:1}
+  #quitBtn:hover{border-color:#e8574a;color:#e8574a}
+  #quitBtn.armed{border-color:#e8574a;color:#e8574a;background:rgba(232,87,74,.16);width:auto;padding:0 10px;border-radius:15px;font-size:11px;letter-spacing:.1em}
   #cross{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;
     border-radius:50%;background:rgba(233,227,209,.75);box-shadow:0 0 8px rgba(233,227,209,.5)}
   #stamWrap{position:absolute;left:50%;bottom:56px;transform:translateX(-50%);
@@ -211,7 +215,7 @@
 
 <div id="hud">
   <div id="topL" class="tag">Deaths<b id="deaths">0</b><span id="whoami" style="margin-left:16px;color:var(--gold)"></span></div>
-  <div id="topR"><span id="timer">00:00</span><button id="coinBtn" title="wallet">◈</button><button id="mute" title="sound">♪</button></div>
+  <div id="topR"><span id="timer">00:00</span><button id="coinBtn" title="wallet">◈</button><button id="mute" title="sound">♪</button><button id="quitBtn" title="quit the round">⏻</button></div>
   <div id="walletBar">◈ <b id="wCredit">0</b> · <span class="earn" id="wEarn">0</span> earn · <span class="fb">🔥<b id="wFb">0</b></span></div>
   <div id="potBar">POT <b id="potVal">0</b> · <span id="entryVal"></span> · <span id="bonusVal"></span></div>
   <div id="killfeed"></div>

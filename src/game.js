@@ -126,6 +126,22 @@ net.on('state', function(){
   }
 });
 
+// Quit: leave the round and return to the home screen. Two taps (arms first) so
+// you can't forfeit your entry with an accidental tap.
+var quitBtn = document.getElementById('quitBtn');
+var quitArmed = false, quitTimer = null;
+function disarmQuit(){ quitArmed = false; quitBtn.textContent = '⏻'; quitBtn.classList.remove('armed'); if (quitTimer){ clearTimeout(quitTimer); quitTimer = null; } }
+quitBtn.addEventListener('click', function(){
+  if (!quitArmed){
+    quitArmed = true; quitBtn.textContent = 'Quit?'; quitBtn.classList.add('armed');
+    quitTimer = setTimeout(disarmQuit, 2500);
+    return;
+  }
+  disarmQuit();
+  state.phase = 'menu';        // mark a clean exit so the close isn't treated as a drop
+  net.disconnect();            // server removes us; the close handler returns us home
+});
+
 export function toggleMute(){
   if (!Sfx.master) return;
   Sfx.muted = !Sfx.muted;

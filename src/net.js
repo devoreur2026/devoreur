@@ -159,6 +159,9 @@ export var net = {
   buyFireballs: function(){ this.send({ t: MSG.SHOP, packs: 1, nonce: this.nonce() }); },
   transfer: function(amount){ this.send({ t: MSG.TRANSFER, amount: amount, nonce: this.nonce() }); },
   requestHistory: function(){ this.send({ t: MSG.HISTORY }); },
+  // leave the game: close the socket (server removes us); the close handler
+  // returns us to the home screen.
+  disconnect: function(){ this.spectating = false; if (this.ws){ try { this.ws.close(); } catch (e) {} } },
 
   // find my own authoritative snapshot in the latest STATE
   self: function(){
