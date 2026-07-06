@@ -3,9 +3,14 @@
 // callback after a restart still finds its payment) and write-throughs every
 // change. Server-only (SERVICE ROLE key); RLS denies clients. Mirrors ledgerStore.
 //
-// Requires SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY and db/payments.sql applied.
+// Requires SUPABASE_URL + SUPABASE_SECRET_KEY and db/payments.sql applied.
 var URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
-var KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+// NEW server secret key; falls back to the legacy service_role key with a warning.
+var KEY = process.env.SUPABASE_SECRET_KEY || '';
+if (!KEY && process.env.SUPABASE_SERVICE_ROLE_KEY){
+  KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  console.warn('[payments] using LEGACY SUPABASE_SERVICE_ROLE_KEY — set SUPABASE_SECRET_KEY and disable the legacy key.');
+}
 
 export function paymentPersistenceConfigured(){ return !!(URL && KEY); }
 
