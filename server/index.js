@@ -12,6 +12,7 @@ import { DEV_GRANT } from '../shared/economy.js';
 import { MSG } from '../shared/protocol.js';
 import { verifyToken, authConfig, authConfigured } from './auth.js';
 import { bank } from './bankInstance.js';
+import { initLedgerStore, ledgerPersistenceConfigured } from './ledgerStore.js';
 
 var __dirname = path.dirname(fileURLToPath(import.meta.url));
 var ROOT = path.resolve(__dirname, '..');   // project root (serves index.html, src/, shared/)
@@ -133,6 +134,15 @@ wss.on('connection', (ws) => {
   });
   ws.on('error', () => {});
 });
+
+// Load the durable ledger from Supabase (if a service-role key is configured),
+// rebuilding wallets before anyone can play. In-memory stays authoritative.
+if (ledgerPersistenceConfigured()){
+  initLedgerStore(bank.ledger)
+    .catch((e) => console.error('[ledger] Supabase persistence FAILED to init — running in-memory only:', e && e.message));
+} else {
+  console.log('[ledger] in-memory only (set SUPABASE_SERVICE_ROLE_KEY to persist the ledger in Supabase).');
+}
 
 server.listen(PORT, () => {
   console.log('UMBRA server (game + web) running at http://localhost:' + PORT);

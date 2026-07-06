@@ -21,6 +21,7 @@ export class Ledger {
     this.inv = new Map();        // account -> fireballs (integer)
     this.nextId = 1;
     this.sink = null;            // optional fn(rows) for durable write-through
+    this.invSink = null;         // optional fn(account, count) for inventory durability
   }
 
   key(a, b){ return a + '|' + b; }
@@ -75,6 +76,7 @@ export class Ledger {
     for (i = 0; i < invDeltas.length; i++){
       var a = invDeltas[i];
       this.inv.set(a.account, this.fireballs(a.account) + a.fireballs);
+      if (this.invSink){ try { this.invSink(a.account, this.inv.get(a.account)); } catch (err) { console.error('[inv sink]', err); } }
     }
 
     var result = { ok: true, rows: appended };
