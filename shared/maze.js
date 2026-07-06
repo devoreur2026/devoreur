@@ -87,9 +87,10 @@ export function generateMaze(seed){
     }
   })();
 
-  // braid: knock out ~10% of walls so eaters can circle and routes multiply
+  // braid: knock out ~13% of walls so eaters can circle and routes multiply
+  // (more loops = more complex, less dead-end-y)
   (function braid(){
-    var removed = 0, want = Math.floor(N * N * 0.10), tries = 0;
+    var removed = 0, want = Math.floor(N * N * 0.13), tries = 0;
     while (removed < want && tries++ < 20000){
       var x = 1 + ((rnd() * (G - 2)) | 0), z = 1 + ((rnd() * (G - 2)) | 0);
       if (grid[id(x, z)] !== 1) continue;

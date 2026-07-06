@@ -1,7 +1,7 @@
 // Constants shared by the authoritative server and the browser client.
 // This file is isomorphic: pure data, no Node- or browser-specific APIs.
-export var N = 25;                 // maze cells per side
-export var G = N * 2 + 1;          // tile grid (walls + corridors) -> 51x51
+export var N = 41;                 // maze cells per side (bigger, harder mazes)
+export var G = N * 2 + 1;          // tile grid (walls + corridors) -> 83x83
 export var CS = 6, WH = 7;         // corridor size, wall height
 export var EYE = 1.7, PLAYER_R = 0.6;
 export var WALK = 5.4, SPRINT = 8.6;
