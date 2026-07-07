@@ -76,21 +76,21 @@ net.on('killed', function(m){
   var out = !!(m && m.out);
   var lives = m && typeof m.lives === 'number' ? m.lives : 0;
   document.getElementById('deathTitle').textContent =
-    (m && m.by === 'fireball') ? (m.byName || 'Someone') + ' burned you' : 'A Darkness Eater found you';
+    (m && m.by === 'fireball') ? (m.byName || 'Quelqu\'un') + ' vous a brûlé' : 'Un Dévoreur de Lumière vous a trouvé';
   var dl = document.getElementById('deathLives');
   var rb = document.getElementById('respawnBtn');
   var rv = document.getElementById('reviveBtn');
   document.getElementById('reviveMsg').textContent = '';
   reviveArmed = out ? (m.price || 1000) : 0;
   if (out){
-    dl.textContent = "You're out of lives";
-    rb.textContent = 'Spectate';                 // roam as a ghost for the rest of the round
+    dl.textContent = "Vous n'avez plus de vies";
+    rb.textContent = 'Observer';                 // roam as a ghost for the rest of the round
     rb.classList.remove('hide');
-    rv.textContent = 'Pay ' + (m.price || 1000) + ' for 4 more lives';
+    rv.textContent = 'Payer ' + (m.price || 1000) + ' pour 4 vies de plus';
     rv.classList.remove('hide');
   } else {
-    dl.textContent = '♥ ' + lives + (lives === 1 ? ' LIFE LEFT' : ' LIVES LEFT');
-    rb.textContent = 'Rise again';
+    dl.textContent = '♥ ' + lives + (lives === 1 ? ' VIE RESTANTE' : ' VIES RESTANTES');
+    rb.textContent = 'Renaître';
     rb.classList.remove('hide');
     rv.classList.add('hide');
   }
@@ -110,7 +110,7 @@ document.getElementById('reviveBtn').addEventListener('click', function(){
   var price = reviveArmed || 1000;
   var credit = (net.wallet && net.wallet.credit) || 0;
   if (credit < price){
-    document.getElementById('reviveMsg').textContent = 'Not enough credit — add funds in your wallet';
+    document.getElementById('reviveMsg').textContent = 'Crédit insuffisant — ajoutez des fonds dans votre portefeuille';
     return;
   }
   net.revive();                       // server buys another life-pack + respawns us
@@ -124,26 +124,26 @@ net.on('roundOver', function(m){
   state.phase = 'over';
   var rollover = !m.winnerId && (m.rolled || 0) > 0;
   if (rollover){
-    winTitle.textContent = 'The Heart keeps its treasure';
+    winTitle.textContent = 'Le Cœur garde son trésor';
   } else {
     var mine = m.winnerId === net.id;
-    winTitle.textContent = mine ? 'The Heart of the Maze is yours'
-                                : (m.winnerName || 'Someone') + ' claimed the Heart';
+    winTitle.textContent = mine ? 'Le Cœur du labyrinthe est à vous'
+                                : (m.winnerName || 'Quelqu\'un') + ' a réclamé le Cœur';
   }
   // round summary: pot breakdown / rollover, and per-player net + entry paid
   var box = document.getElementById('summaryBox');
   if (m.players){
     var head = rollover
-      ? 'No one reached the Heart — the pot grows to ' + m.rolled + ' CDF for the next round.'
-      : 'Pot ' + (m.pot || 0) + (m.topup ? ' + ' + m.topup + ' bonus' : '') +
-        ' → ' + (m.winnerName || '—') + ' won ' + (m.target || 0) + ' CDF';
+      ? 'Personne n\'a atteint le Cœur — la cagnotte monte à ' + m.rolled + ' CDF pour la prochaine session.'
+      : 'Cagnotte ' + (m.pot || 0) + (m.topup ? ' + ' + m.topup + ' bonus' : '') +
+        ' → ' + (m.winnerName || '—') + ' remporte ' + (m.target || 0) + ' CDF';
     var rows = m.players.slice().sort(function(a, b){ return b.net - a.net; }).map(function(p){
       var me = p.id === net.id;
-      var entry = p.entry ? ' <span style="color:#565b6e">· entry ' + p.entry + '</span>' : '';
+      var entry = p.entry ? ' <span style="color:#5c5675">· entrée ' + p.entry + '</span>' : '';
       return '<div class="' + (me ? 'me' : '') + '">' + (me ? '▸ ' : '') + p.name + entry + ' &nbsp; ' +
              (p.net >= 0 ? '+' : '') + p.net + '</div>';
     }).join('');
-    box.innerHTML = '<div style="color:var(--gold);margin-bottom:8px">' + head + '</div>' + rows;
+    box.innerHTML = '<div style="color:var(--lime);margin-bottom:8px">' + head + '</div>' + rows;
   } else box.innerHTML = '';
   ovDeath.classList.add('hide');
   ovWin.classList.remove('hide');
@@ -165,7 +165,7 @@ var quitArmed = false, quitTimer = null;
 function disarmQuit(){ quitArmed = false; quitBtn.textContent = '⏻'; quitBtn.classList.remove('armed'); if (quitTimer){ clearTimeout(quitTimer); quitTimer = null; } }
 quitBtn.addEventListener('click', function(){
   if (!quitArmed){
-    quitArmed = true; quitBtn.textContent = 'Quit?'; quitBtn.classList.add('armed');
+    quitArmed = true; quitBtn.textContent = 'Quitter ?'; quitBtn.classList.add('armed');
     quitTimer = setTimeout(disarmQuit, 2500);
     return;
   }

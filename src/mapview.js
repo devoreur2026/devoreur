@@ -30,15 +30,15 @@ function buildStatic(s){
   var g = net.grid, cell = s / G;
   c.clearRect(0, 0, s, s);
   c.fillStyle = 'rgba(6,8,13,0.82)'; c.fillRect(0, 0, s, s);
-  c.fillStyle = '#b4ad86';                                  // corridors (parchment)
+  c.fillStyle = '#9a90c2';                                  // corridors (soft lavender)
   for (var z = 0; z < G; z++) for (var x = 0; x < G; x++){
     if (g[z * G + x] === 0) c.fillRect(x * cell, z * cell, cell + 0.6, cell + 0.6);
   }
-  var tt = net.treasureT;                                   // Heart of the Maze (gold)
+  var tt = net.treasureT;                                   // Heart of the Maze (lime)
   if (tt){
     var gx = tt.x * cell + cell / 2, gy = tt.z * cell + cell / 2, r = Math.max(3, cell * 0.9);
-    c.fillStyle = '#ffce6b'; c.beginPath(); c.arc(gx, gy, r * 0.55, 0, 6.283); c.fill();
-    c.strokeStyle = 'rgba(255,206,107,0.7)'; c.lineWidth = 1.5;
+    c.fillStyle = '#b6ff3a'; c.beginPath(); c.arc(gx, gy, r * 0.55, 0, 6.283); c.fill();
+    c.strokeStyle = 'rgba(182,255,58,0.75)'; c.lineWidth = 1.5;
     c.beginPath(); c.arc(gx, gy, r, 0, 6.283); c.stroke();
   }
   cachedGrid = net.grid; cachedSize = s; cachedTreasure = tt;

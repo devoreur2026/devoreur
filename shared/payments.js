@@ -6,10 +6,10 @@
 // the gateway expects), each with its required phone format. No test/simulator
 // provider is selectable in production — provider_id 14 would self-credit.
 export var PROVIDERS = [
-  { key: 'vodacom',  id: 9,  label: 'Vodacom M-Pesa', hint: '243XXXXXXXXX (country code, no leading 0)' },
-  { key: 'orange',   id: 10, label: 'Orange Money',   hint: '0XXXXXXXXX (starts with 0)' },
-  { key: 'airtel',   id: 17, label: 'Airtel Money',   hint: '99XXXXXXX (no leading 0)' },
-  { key: 'africell', id: 19, label: 'Africell Money', hint: '09XXXXXXXX (starts with 0)' }
+  { key: 'vodacom',  id: 9,  label: 'Vodacom M-Pesa', hint: '243XXXXXXXXX (indicatif pays, sans 0 initial)' },
+  { key: 'orange',   id: 10, label: 'Orange Money',   hint: '0XXXXXXXXX (commence par 0)' },
+  { key: 'airtel',   id: 17, label: 'Airtel Money',   hint: '99XXXXXXX (sans 0 initial)' },
+  { key: 'africell', id: 19, label: 'Africell Money', hint: '09XXXXXXXX (commence par 0)' }
 ];
 export function providerByKey(key){ for (var i = 0; i < PROVIDERS.length; i++) if (PROVIDERS[i].key === key) return PROVIDERS[i]; return null; }
 export function providerById(id){ for (var i = 0; i < PROVIDERS.length; i++) if (PROVIDERS[i].id === id) return PROVIDERS[i]; return null; }
@@ -36,14 +36,14 @@ function shape(key, nat){
 // Normalize + validate a phone for a provider. Returns { ok, phone, reason }.
 export function normalizePhone(providerKey, raw){
   var p = providerByKey(providerKey);
-  if (!p) return { ok: false, reason: 'choose a mobile money provider' };
+  if (!p) return { ok: false, reason: 'choisissez un opérateur mobile money' };
   var nat = toNational(raw);
-  if (nat.length !== 9) return { ok: false, reason: 'enter a valid ' + p.label + ' number: ' + p.hint };
+  if (nat.length !== 9) return { ok: false, reason: 'entrez un numéro ' + p.label + ' valide : ' + p.hint };
   var phone = shape(providerKey, nat);
   var okShape = (providerKey === 'vodacom') ? /^243\d{9}$/.test(phone)
               : (providerKey === 'orange' || providerKey === 'africell') ? /^0\d{9}$/.test(phone)
               : /^\d{9}$/.test(phone);
-  if (!okShape) return { ok: false, reason: 'that number is not valid for ' + p.label + ' (' + p.hint + ')' };
+  if (!okShape) return { ok: false, reason: 'ce numéro n\'est pas valide pour ' + p.label + ' (' + p.hint + ')' };
   return { ok: true, phone: phone };
 }
 
@@ -57,7 +57,7 @@ export var COUNTRY = 'CD';
 // Unipesa transaction statuses.
 export var STATUS = { INITIATED: 0, IN_PROGRESS: 1, SUCCESS: 2, FAILED: 3, CANCELLED: 4, IN_TRANSIT: 6 };
 export var STATUS_LABEL = {
-  0: 'initiated', 1: 'in progress', 2: 'success', 3: 'failed', 4: 'cancelled', 6: 'in transit'
+  0: 'initié', 1: 'en cours', 2: 'réussi', 3: 'échoué', 4: 'annulé', 6: 'en transit'
 };
 export var SIMULATOR_SUCCESS_CODE = -8888;   // provider_result.code for a simulator success (direct response)
 

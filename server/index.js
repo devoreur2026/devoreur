@@ -197,6 +197,6 @@ if (paymentConfigObj.ready){
 }
 
 server.listen(PORT, () => {
-  console.log('UMBRA server (game + web) running at http://localhost:' + PORT);
+  console.log('Devoreur server (game + web) running at http://localhost:' + PORT);
   console.log('Open two browser tabs there to test multiplayer.');
 });

@@ -26,25 +26,25 @@ async function loadConfig(){
   return cfg;
 }
 
-function msg(t, kind){ var m = el('payMsg'); m.textContent = t || ''; m.style.color = kind === 'bad' ? '#e8574a' : 'var(--gold)'; }
+function msg(t, kind){ var m = el('payMsg'); m.textContent = t || ''; m.style.color = kind === 'bad' ? 'var(--danger)' : 'var(--lime)'; }
 
 var REASONS = {
-  payments_disabled: 'Payments are currently unavailable.',
-  attestation_required: 'Please confirm you are 18+ and accept the Terms.',
-  below_min: 'Amount is below the minimum.',
-  invalid_amount: 'Enter a valid amount.',
-  bad_provider: 'Choose a mobile money provider.',
-  bad_phone: 'Check the phone number for this provider.',
-  insufficient_earnings: 'Not enough Earnings to withdraw that.',
-  daily_cap: 'You have reached your daily withdrawal limit.',
-  gateway_error: 'Could not reach the payment gateway — try again.',
-  rate_limited: 'Too many attempts — wait a moment.'
+  payments_disabled: 'Les paiements sont indisponibles pour le moment.',
+  attestation_required: 'Confirmez que vous avez 18 ans ou plus et acceptez les conditions.',
+  below_min: 'Le montant est en dessous du minimum.',
+  invalid_amount: 'Entrez un montant valide.',
+  bad_provider: 'Choisissez un opérateur mobile money.',
+  bad_phone: 'Vérifiez le numéro pour cet opérateur.',
+  insufficient_earnings: 'Pas assez de Gains pour ce retrait.',
+  daily_cap: 'Vous avez atteint votre limite de retrait quotidienne.',
+  gateway_error: 'Impossible de joindre la passerelle de paiement — réessayez.',
+  rate_limited: 'Trop de tentatives — patientez un instant.'
 };
 function reasonText(d){
-  if (!d) return 'Something went wrong — try again.';
-  var base = REASONS[d.reason] || 'Could not complete the request.';
-  if (d.reason === 'below_min' && d.min) base = 'Minimum is ' + d.min + ' CDF.';
-  if (d.reason === 'daily_cap' && d.cap) base = 'Daily limit is ' + d.cap + ' CDF (already ' + (d.already || 0) + ').';
+  if (!d) return 'Une erreur est survenue — réessayez.';
+  var base = REASONS[d.reason] || 'Impossible de traiter la demande.';
+  if (d.reason === 'below_min' && d.min) base = 'Le minimum est ' + d.min + ' CDF.';
+  if (d.reason === 'daily_cap' && d.cap) base = 'Limite quotidienne : ' + d.cap + ' CDF (déjà ' + (d.already || 0) + ').';
   if (d.reason === 'bad_phone' && d.detail) base = d.detail;
   return base;
 }
@@ -58,14 +58,14 @@ function setTab(tab){
   ui.tab = tab;
   el('tabDeposit').classList.toggle('on', tab === 'deposit');
   el('tabWithdraw').classList.toggle('on', tab === 'withdraw');
-  el('payBtn').textContent = tab === 'deposit' ? 'Deposit' : 'Withdraw';
-  el('payAmount').placeholder = 'amount CDF (min ' + (tab === 'deposit' ? cfg.depositMin : cfg.withdrawMin) + ')';
+  el('payBtn').textContent = tab === 'deposit' ? 'Déposer' : 'Retirer';
+  el('payAmount').placeholder = 'montant CDF (min. ' + (tab === 'deposit' ? cfg.depositMin : cfg.withdrawMin) + ')';
   msg('');
 }
 // show the selected provider's required phone format under the number field
 function updateHint(){
   var p = providerByKey(el('payProvider').value);
-  el('payPhoneHint').textContent = p ? ('Format: ' + p.hint) : '';
+  el('payPhoneHint').textContent = p ? ('Format : ' + p.hint) : '';
 }
 
 function statusClass(p){
@@ -78,11 +78,11 @@ function renderHistory(list){
   (list || []).forEach(function(p){
     var row = document.createElement('div'); row.className = 'prow';
     var left = document.createElement('span');
-    left.innerHTML = (p.kind === 'deposit' ? 'Deposit ' : 'Withdraw ') + '<b>' + p.amount + '</b> CDF ' +
+    left.innerHTML = (p.kind === 'deposit' ? 'Dépôt ' : 'Retrait ') + '<b>' + p.amount + '</b> CDF ' +
       '<span class="pst ' + statusClass(p) + '">· ' + p.status_label + '</span>';
     var right = document.createElement('span');
     if (!p.settled){
-      var b = document.createElement('button'); b.className = 'refresh'; b.textContent = 'refresh';
+      var b = document.createElement('button'); b.className = 'refresh'; b.textContent = 'actualiser';
       b.addEventListener('click', function(){ b.disabled = true; api('/api/pay/status', 'POST', { order_id: p.order_id }).then(function(){ refreshPayments(); }); });
       right.appendChild(b);
     }
@@ -109,28 +109,28 @@ async function submit(){
   var provider = el('payProvider').value;
   var phone = el('payPhone').value.trim();
   var min = ui.tab === 'deposit' ? cfg.depositMin : cfg.withdrawMin;
-  if (amount < min){ msg('Minimum is ' + min + ' CDF.', 'bad'); return; }
+  if (amount < min){ msg('Le minimum est ' + min + ' CDF.', 'bad'); return; }
   // validate/normalize the phone for the chosen provider BEFORE any money request
   var v = normalizePhone(provider, phone);
   if (!v.ok){ msg(v.reason, 'bad'); return; }
   phone = v.phone;
   if (!ui.attested){
-    if (!el('attestChk').checked){ msg('Please confirm you are 18+ and accept the Terms.', 'bad'); return; }
+    if (!el('attestChk').checked){ msg('Confirmez que vous avez 18 ans ou plus et acceptez les conditions.', 'bad'); return; }
     var a = await api('/api/pay/attest', 'POST', { accept: true });
-    if (a.code !== 200){ msg('Could not record your confirmation — try again.', 'bad'); return; }
+    if (a.code !== 200){ msg('Impossible d\'enregistrer votre confirmation — réessayez.', 'bad'); return; }
     ui.attested = true; el('attestRow').classList.add('hide');
   }
   var btn = el('payBtn'); btn.disabled = true;
-  msg(ui.tab === 'deposit' ? 'Sending request…' : 'Requesting withdrawal…');
+  msg(ui.tab === 'deposit' ? 'Envoi de la demande…' : 'Demande de retrait…');
   var r = await api(ui.tab === 'deposit' ? '/api/pay/deposit' : '/api/pay/withdraw', 'POST', { amount: amount, provider: provider, phone: phone });
   btn.disabled = false;
   if (r.code !== 200 || !r.data || !r.data.ok){ msg(reasonText(r.data), 'bad'); return; }
   if (ui.tab === 'deposit'){
-    msg('Approve the payment on your phone (' + phone + '). This can take 2–3 minutes; the status will update below.');
+    msg('Validez le paiement sur votre téléphone (' + phone + '). Cela peut prendre 2 à 3 minutes ; le statut se mettra à jour ci-dessous.');
   } else if (r.data.confirm_type){
-    msg('Confirm the withdrawal on your phone (a code may be sent).');
+    msg('Confirmez le retrait sur votre téléphone (un code peut être envoyé).');
   } else {
-    msg('Withdrawal requested — the status will update below.');
+    msg('Retrait demandé — le statut se mettra à jour ci-dessous.');
   }
   el('payAmount').value = '';
   refreshPayments();

@@ -28,21 +28,21 @@ export class Payments {
     if (rec.kind === 'deposit'){
       if (status === STATUS.SUCCESS){
         this.bank.creditDeposit(rec.account, rec.amount, rec.order_id);            // credit ONCE
-        this.store.update(orderId, { status: STATUS.SUCCESS, status_label: 'success', settled: true, credited: true });
+        this.store.update(orderId, { status: STATUS.SUCCESS, status_label: 'réussi', settled: true, credited: true });
       } else if (status === STATUS.FAILED || status === STATUS.CANCELLED){
-        this.store.update(orderId, { status: status, status_label: STATUS_LABEL[status], settled: true, message: msg || 'payment not completed — nothing was charged' });
+        this.store.update(orderId, { status: status, status_label: STATUS_LABEL[status], settled: true, message: msg || 'paiement non abouti — rien n\'a été débité' });
       } else {
-        this.store.update(orderId, { status: status, status_label: STATUS_LABEL[status] || 'in progress' });
+        this.store.update(orderId, { status: status, status_label: STATUS_LABEL[status] || 'en cours' });
       }
     } else {   // withdrawal
       if (status === STATUS.SUCCESS){
         this.bank.completeWithdrawal(rec.account, rec.amount, rec.order_id);        // hold -> out
-        this.store.update(orderId, { status: STATUS.SUCCESS, status_label: 'success', settled: true });
+        this.store.update(orderId, { status: STATUS.SUCCESS, status_label: 'réussi', settled: true });
       } else if (status === STATUS.FAILED || status === STATUS.CANCELLED){
         this.bank.releaseWithdrawal(rec.account, rec.amount, rec.order_id);         // hold -> Earnings
-        this.store.update(orderId, { status: status, status_label: STATUS_LABEL[status], settled: true, message: msg || 'withdrawal failed — refunded to your Earnings' });
+        this.store.update(orderId, { status: status, status_label: STATUS_LABEL[status], settled: true, message: msg || 'retrait échoué — remboursé sur vos Gains' });
       } else {   // in_transit / in_progress -> keep held, keep polling
-        this.store.update(orderId, { status: status, status_label: STATUS_LABEL[status] || 'in transit' });
+        this.store.update(orderId, { status: status, status_label: STATUS_LABEL[status] || 'en transit' });
       }
     }
     return { ok: true, record: this.store.get(orderId) };
@@ -70,12 +70,12 @@ export class Payments {
     var orderId = 'dep_' + randomUUID();
     this.store.create({ order_id: orderId, account: account, kind: 'deposit', amount: v.amount,
       provider: req.provider, provider_id: v.provider.id, phone: v.phone,
-      status: STATUS.INITIATED, status_label: 'initiated', settled: false, credited: false });
+      status: STATUS.INITIATED, status_label: 'initié', settled: false, credited: false });
 
     var resp;
     try { resp = await this.client.deposit(orderId, v.amount, v.provider.id, v.phone, req.callbackUrl); }
     catch (e){
-      this.store.update(orderId, { status: STATUS.FAILED, status_label: 'failed', settled: true, message: 'could not reach the payment gateway' });
+      this.store.update(orderId, { status: STATUS.FAILED, status_label: 'échoué', settled: true, message: 'impossible de joindre la passerelle de paiement' });
       return { ok: false, reason: 'gateway_error', order_id: orderId };
     }
     var st = readStatus(resp.data);
@@ -101,7 +101,7 @@ export class Payments {
 
     this.store.create({ order_id: orderId, account: account, kind: 'withdrawal', amount: v.amount,
       provider: req.provider, provider_id: v.provider.id, phone: v.phone,
-      status: STATUS.INITIATED, status_label: 'initiated', settled: false });
+      status: STATUS.INITIATED, status_label: 'initié', settled: false });
 
     var resp;
     try { resp = await this.client.withdraw(orderId, v.amount, v.provider.id, v.phone, req.callbackUrl); }

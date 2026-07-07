@@ -45,7 +45,7 @@ async function api(path, opts){
       method: opts.method || 'POST', headers: headers,
       body: opts.body ? JSON.stringify(opts.body) : undefined
     });
-  } catch (e) { return { ok: false, error: 'Network error — check your connection.' }; }
+  } catch (e) { return { ok: false, error: 'Erreur réseau — vérifiez votre connexion.' }; }
   try { data = await res.json(); } catch (e) {}
   if (!res.ok) return { ok: false, status: res.status, error: mapError(data, res.status) };
   return { ok: true, data: data };
@@ -55,20 +55,20 @@ function mapError(d, status){
   var code = (d && (d.error_code || d.error || d.code)) || '';
   var msg = ('' + ((d && (d.msg || d.error_description || d.message)) || '')).toLowerCase();
   if (typeof code === 'number') code = '';
-  if (code === 'invalid_credentials' || msg.indexOf('invalid login') >= 0) return 'Wrong email or password.';
+  if (code === 'invalid_credentials' || msg.indexOf('invalid login') >= 0) return 'E-mail ou mot de passe incorrect.';
   if (code === 'user_already_exists' || code === 'email_exists' || msg.indexOf('already registered') >= 0 || msg.indexOf('already been registered') >= 0)
-    return 'That email is already registered — sign in instead.';
+    return 'Cet e-mail est déjà inscrit — connectez-vous plutôt.';
   if (code === 'otp_expired' || code === 'otp_disabled' || (msg.indexOf('token') >= 0 && (msg.indexOf('expired') >= 0 || msg.indexOf('invalid') >= 0)) || msg.indexOf('otp') >= 0)
-    return 'That code is wrong or has expired.';
+    return 'Ce code est incorrect ou a expiré.';
   if (code === 'over_email_send_rate_limit' || code === 'over_request_rate_limit' || status === 429 || msg.indexOf('rate limit') >= 0 || msg.indexOf('too many') >= 0)
-    return 'Too many attempts — wait a few minutes and try again.';
+    return 'Trop de tentatives — patientez quelques minutes et réessayez.';
   if (code === 'weak_password' || msg.indexOf('password should be') >= 0 || msg.indexOf('at least 6') >= 0)
-    return 'Password is too weak (use at least 6 characters).';
+    return 'Mot de passe trop faible (au moins 6 caractères).';
   if (code === 'validation_failed' || msg.indexOf('unable to validate email') >= 0 || msg.indexOf('invalid email') >= 0 || msg.indexOf('invalid format') >= 0)
-    return "That email doesn't look valid.";
-  if (code === 'email_not_confirmed') return "Your email isn't verified yet — enter the code we sent.";
-  if (code === 'signup_disabled') return 'Sign-ups are disabled for this game.';
-  return (d && (d.msg || d.error_description)) || 'Something went wrong. Please try again.';
+    return "Cet e-mail ne semble pas valide.";
+  if (code === 'email_not_confirmed') return "Votre e-mail n'est pas encore vérifié — entrez le code envoyé.";
+  if (code === 'signup_disabled') return 'Les inscriptions sont désactivées pour ce jeu.';
+  return (d && (d.msg || d.error_description)) || 'Une erreur est survenue. Veuillez réessayer.';
 }
 
 async function refresh(){
@@ -88,9 +88,9 @@ export var auth = {
       var res = await fetch('/api/config', { cache: 'no-store' });
       var c = await res.json();
       if (c && c.supabaseUrl && c.supabaseAnonKey){ cfg = { url: c.supabaseUrl.replace(/\/+$/, ''), key: c.supabaseAnonKey }; this.configured = true; }
-      else this.configError = 'Accounts are unavailable — the server is missing its Supabase settings.';
+      else this.configError = 'Comptes indisponibles — la configuration Supabase du serveur est manquante.';
     } catch (e) {
-      this.configError = 'Could not reach the server.';
+      this.configError = 'Impossible de joindre le serveur.';
     }
     if (!this.configured) return;
     session = load();

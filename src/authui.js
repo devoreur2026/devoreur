@@ -41,13 +41,13 @@ function pollRound(){
   fetch('/api/round', { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(info){
     if (!info) return;
     el('joinInfo').innerHTML = info.open
-      ? 'Entry <b>' + info.price + '</b> CDF · 4 lives · Pot <b>' + info.pot + '</b> · ' + fmtClock(info.elapsed) + ' / ' + fmtClock(info.limit || 3600)
-      : 'Session ending (' + fmtClock(info.elapsed) + ') · Pot <b>' + info.pot + '</b> — you join the next one';
+      ? 'Entrée <b>' + info.price + '</b> CDF · 4 vies · Cagnotte <b>' + info.pot + '</b> · ' + fmtClock(info.elapsed) + ' / ' + fmtClock(info.limit || 3600)
+      : 'Session en fin (' + fmtClock(info.elapsed) + ') · Cagnotte <b>' + info.pot + '</b> — vous rejoignez la prochaine';
   }).catch(function(){});
 }
 function startPoll(){ if (!roundPoll){ pollRound(); roundPoll = setInterval(pollRound, 2500); } }
 function stopPoll(){ if (roundPoll){ clearInterval(roundPoll); roundPoll = null; } }
-function resetPlay(){ var b = el('playBtn'); b.disabled = false; b.textContent = 'Enter the maze'; }
+function resetPlay(){ var b = el('playBtn'); b.disabled = false; b.textContent = 'Entrer dans le labyrinthe'; }
 
 // run an async action with a button in a "busy" state
 async function busy(btn, label, fn){
@@ -62,8 +62,8 @@ var resendLinks = [];
 function tickCooldown(){
   var left = Math.ceil((cooldownUntil - Date.now()) / 1000);
   resendLinks.forEach(function(l){
-    if (left > 0){ l.classList.add('disabled'); l.textContent = 'Resend in ' + left + 's'; }
-    else { l.classList.remove('disabled'); l.textContent = 'Resend code'; }
+    if (left > 0){ l.classList.add('disabled'); l.textContent = 'Renvoyer dans ' + left + 's'; }
+    else { l.classList.remove('disabled'); l.textContent = 'Renvoyer le code'; }
   });
   if (left <= 0 && cooldownTimer){ clearInterval(cooldownTimer); cooldownTimer = null; }
 }
@@ -84,8 +84,8 @@ el('rsBack').onclick = function(){ show('signin'); };
 /* ---------- sign in ---------- */
 function doSignIn(){
   var email = el('siEmail').value.trim(), pass = el('siPass').value;
-  if (!email || !pass){ showErr('Enter your email and password.'); return; }
-  busy(el('siBtn'), 'Signing in…', async function(){
+  if (!email || !pass){ showErr('Entrez votre e-mail et votre mot de passe.'); return; }
+  busy(el('siBtn'), 'Connexion…', async function(){
     var r = await auth.signIn(email, pass);
     if (r.ok) showReady(); else showErr(r.error);
   });
@@ -96,10 +96,10 @@ el('siPass').addEventListener('keydown', function(e){ if (e.key === 'Enter') doS
 /* ---------- sign up ---------- */
 function doSignUp(){
   var name = el('suName').value.trim(), email = el('suEmail').value.trim(), pass = el('suPass').value;
-  if (!name){ showErr('Choose a display name.'); return; }
-  if (!email){ showErr('Enter your email.'); return; }
-  if (pass.length < 6){ showErr('Password must be at least 6 characters.'); return; }
-  busy(el('suBtn'), 'Sending code…', async function(){
+  if (!name){ showErr('Choisissez un pseudo.'); return; }
+  if (!email){ showErr('Entrez votre e-mail.'); return; }
+  if (pass.length < 6){ showErr('Le mot de passe doit comporter au moins 6 caractères.'); return; }
+  busy(el('suBtn'), 'Envoi du code…', async function(){
     var r = await auth.signUp(email, pass, name);
     if (!r.ok){ showErr(r.error); return; }
     pendingEmail = email;
@@ -115,8 +115,8 @@ el('suPass').addEventListener('keydown', function(e){ if (e.key === 'Enter') doS
 /* ---------- verify signup OTP ---------- */
 function doVerify(){
   var code = cleanCode(el('otpCode').value);
-  if (!validCode(code)){ showErr('Enter the code we emailed you.'); return; }
-  busy(el('otpBtn'), 'Verifying…', async function(){
+  if (!validCode(code)){ showErr('Entrez le code reçu par e-mail.'); return; }
+  busy(el('otpBtn'), 'Vérification…', async function(){
     var r = await auth.verifySignup(pendingEmail, code);
     if (r.ok) showReady(); else showErr(r.error);
   });
@@ -132,8 +132,8 @@ el('otpResend').onclick = function(){
 /* ---------- forgot -> reset ---------- */
 function doForgot(){
   var email = el('fgEmail').value.trim();
-  if (!email){ showErr('Enter your email.'); return; }
-  busy(el('fgBtn'), 'Sending…', async function(){
+  if (!email){ showErr('Entrez votre e-mail.'); return; }
+  busy(el('fgBtn'), 'Envoi…', async function(){
     var r = await auth.forgot(email);
     if (!r.ok){ showErr(r.error); return; }
     pendingEmail = email;
@@ -148,9 +148,9 @@ el('fgEmail').addEventListener('keydown', function(e){ if (e.key === 'Enter') do
 
 function doReset(){
   var code = cleanCode(el('rsCode').value), pass = el('rsPass').value;
-  if (!validCode(code)){ showErr('Enter the code we emailed you.'); return; }
-  if (pass.length < 6){ showErr('New password must be at least 6 characters.'); return; }
-  busy(el('rsBtn'), 'Saving…', async function(){
+  if (!validCode(code)){ showErr('Entrez le code reçu par e-mail.'); return; }
+  if (pass.length < 6){ showErr('Le nouveau mot de passe doit comporter au moins 6 caractères.'); return; }
+  busy(el('rsBtn'), 'Enregistrement…', async function(){
     var r = await auth.resetPassword(pendingEmail, code, pass);
     if (r.ok) showReady(); else showErr(r.error);
   });
@@ -169,17 +169,17 @@ function clearEnterTimer(){ if (enterTimer){ clearTimeout(enterTimer); enterTime
 function startPlay(){
   clearErr();
   stopPoll();
-  var b = el('playBtn'); b.disabled = true; b.textContent = 'Entering…';
+  var b = el('playBtn'); b.disabled = true; b.textContent = 'Entrée en cours…';
   console.info('[join] entering the maze…');
   auth.accessToken().then(function(token){
-    if (!token){ resetPlay(); showErr('Your session expired — please sign in again.'); show('signin'); return; }
+    if (!token){ resetPlay(); showErr('Votre session a expiré — veuillez vous reconnecter.'); show('signin'); return; }
     clearEnterTimer();
     // safety net: if we don't actually enter within 10s, stop hanging and offer a retry
     enterTimer = setTimeout(function(){
       console.warn('[join] timed out after 10s waiting for the server');
       enterTimer = null;
-      var btn = el('playBtn'); btn.disabled = false; btn.textContent = 'Retry';
-      showErr("Connection failed — the server didn't respond. Check your connection and retry.");
+      var btn = el('playBtn'); btn.disabled = false; btn.textContent = 'Réessayer';
+      showErr("Échec de la connexion — le serveur n'a pas répondu. Vérifiez votre connexion et réessayez.");
       if (document.exitPointerLock) document.exitPointerLock();
     }, 10000);
     enterMaze(token);
@@ -196,7 +196,7 @@ net.on('authError', function(m){
   clearEnterTimer();
   document.getElementById('ovStart').classList.remove('hide');
   showReady();
-  showErr((m && m.message) || 'Could not join — sign in again.');
+  showErr((m && m.message) || 'Connexion impossible — reconnectez-vous.');
 });
 
 // The socket closed. Either the round ended (the server returns EVERYONE to the
@@ -212,8 +212,8 @@ net.on('close', function(ev){
   state.phase = 'menu';
   resetPlay();
   if (auth.user()) showReady();
-  if (displaced) showErr('You are now playing on another device or browser — this session ended.');
-  else if (droppedMidGame) showErr('Lost connection to the server — retry.');
+  if (displaced) showErr('Vous jouez maintenant sur un autre appareil ou navigateur — cette session est terminée.');
+  else if (droppedMidGame) showErr('Connexion au serveur perdue — réessayez.');
   else showErr('');
 });
 
@@ -224,7 +224,7 @@ net.onError = function(type, e){
     document.getElementById('ovStart').classList.remove('hide');
     resetPlay();
     showReady();
-    showErr('Something went wrong entering the maze (' + type + '). Please retry.');
+    showErr('Un problème est survenu à l\'entrée du labyrinthe (' + type + '). Veuillez réessayer.');
   }
 };
 

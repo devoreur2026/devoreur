@@ -1,239 +1,227 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#04050a">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2304050a'/%3E%3Ccircle cx='16' cy='16' r='7.5' fill='none' stroke='%23ffce6b' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='2.6' fill='%23ffce6b'/%3E%3C/svg%3E">
-<title>UMBRA — The Maze That Eats Light</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a0611">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a0611'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%23b6ff3a' stroke-width='2.2'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23b06bff'/%3E%3C/svg%3E">
+<title>Devoreur — le labyrinthe qui dévore la lumière</title>
 <style>
   :root{
-    --abyss:#04050a; --bone:#e9e3d1; --ember:#ffa050; --gold:#ffce6b;
-    --violet:#8a6bff; --blood:#ff3b2f; --beacon:#5ef2ff; --dim:#8b8fa3;
+    --bg:#0a0611; --bg2:#160c28; --panel:rgba(22,12,40,.72); --panel2:rgba(30,17,52,.92);
+    --ink:#efeafc; --dim:#948dad; --faint:#5c5675;
+    --lime:#b6ff3a; --lime-d:#93e600; --purple:#b06bff; --purple-l:#cfa4ff;
+    --danger:#ff4f74; --cyan:#5ef2ff; --line:rgba(176,107,255,.22);
+    --glow-lime:0 0 32px rgba(182,255,58,.35); --glow-pur:0 0 42px rgba(176,107,255,.4);
+    --safe-b:env(safe-area-inset-bottom,0px);
   }
   *{margin:0;padding:0;box-sizing:border-box}
-  html,body{height:100%;overflow:hidden;background:var(--abyss);
-    font-family:"Segoe UI",system-ui,-apple-system,sans-serif;color:var(--bone);
-    user-select:none;-webkit-user-select:none;touch-action:none}
+  ::selection{background:rgba(182,255,58,.28)}
+  html,body{height:100%;overflow:hidden;background:var(--bg);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);
+    user-select:none;-webkit-user-select:none;touch-action:none;-webkit-tap-highlight-color:transparent}
   #c{position:fixed;inset:0;display:block;cursor:crosshair}
 
-  /* ------- atmosphere layers ------- */
+  /* atmosphere */
   #vig,#danger,#shield,#flash{position:fixed;inset:0;pointer-events:none}
-  #vig{background:radial-gradient(ellipse at center, transparent 46%, rgba(0,0,0,.72) 100%)}
-  #danger{background:radial-gradient(ellipse at center, transparent 40%, rgba(120,6,6,.85) 100%);
-    opacity:0;transition:opacity .25s}
-  #shield{background:radial-gradient(ellipse at center, transparent 55%, rgba(94,180,255,.35) 100%);
-    opacity:0;transition:opacity .4s}
-  #flash{background:#5c0000;opacity:0;transition:opacity .12s}
+  #vig{background:radial-gradient(ellipse at center, transparent 44%, rgba(0,0,0,.76) 100%)}
+  #danger{background:radial-gradient(ellipse at center, transparent 40%, rgba(130,8,44,.85) 100%);opacity:0;transition:opacity .25s}
+  #shield{background:radial-gradient(ellipse at center, transparent 55%, rgba(176,107,255,.42) 100%);opacity:0;transition:opacity .4s}
+  #flash{background:#48001e;opacity:0;transition:opacity .12s}
 
-  /* ------- HUD ------- */
+  /* ---------------- HUD ---------------- */
   #hud{position:fixed;inset:0;pointer-events:none;z-index:5}
-  .tag{font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--dim)}
+  .tag{font-size:clamp(8px,2.4vw,10px);letter-spacing:.3em;text-transform:uppercase;color:var(--dim)}
   #topL{position:absolute;top:16px;left:18px}
-  #topL b{color:var(--blood);font-weight:600;margin-left:6px}
-  #topR{position:absolute;top:12px;right:16px;display:flex;gap:12px;align-items:center}
-  #timer{font-variant-numeric:tabular-nums;font-size:15px;letter-spacing:.18em;color:var(--bone)}
-  #mute{pointer-events:auto;background:transparent;border:1px solid rgba(233,227,209,.25);
-    color:var(--bone);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:13px;line-height:1}
-  #mute:hover{border-color:var(--ember);color:var(--ember)}
-  #quitBtn{pointer-events:auto;background:transparent;border:1px solid rgba(233,227,209,.25);
-    color:var(--dim);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:13px;line-height:1}
-  #quitBtn:hover{border-color:#e8574a;color:#e8574a}
-  #helpBtnGame{pointer-events:auto;background:transparent;border:1px solid rgba(233,227,209,.25);
-    color:var(--dim);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:15px;line-height:1;font-weight:600}
-  #helpBtnGame:hover{border-color:var(--gold);color:var(--gold)}
-  #quitBtn.armed{border-color:#e8574a;color:#e8574a;background:rgba(232,87,74,.16);width:auto;padding:0 10px;border-radius:15px;font-size:11px;letter-spacing:.1em}
-  #cross{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;
-    border-radius:50%;background:rgba(233,227,209,.75);box-shadow:0 0 8px rgba(233,227,209,.5)}
-  #stamWrap{position:absolute;left:50%;bottom:56px;transform:translateX(-50%);
-    width:190px;height:4px;background:rgba(233,227,209,.14);border-radius:2px;overflow:hidden}
-  #stam{height:100%;width:100%;background:linear-gradient(90deg,var(--ember),var(--gold));
-    transition:width .1s linear}
-  #healthWrap{position:absolute;left:50%;bottom:66px;transform:translateX(-50%);
-    width:190px;height:9px;background:rgba(233,227,209,.14);border-radius:3px;overflow:hidden;
-    box-shadow:0 0 0 1px rgba(0,0,0,.4)}
-  #health{height:100%;width:100%;background:linear-gradient(90deg,#e8574a,#ff9d54,#6ee7a8);
-    transition:width .12s linear}
-  #healthLbl{position:absolute;left:50%;bottom:78px;transform:translateX(-50%);
-    font-size:9px;letter-spacing:.24em;color:var(--dim)}
-  #livesLbl{position:absolute;left:50%;bottom:92px;transform:translateX(-50%);
-    font-size:11px;letter-spacing:.24em;color:var(--dim);white-space:nowrap;transition:opacity .2s}
-  #livesLbl b{color:var(--gold);letter-spacing:.12em;font-weight:400}
-  #deathLives{font-size:18px;letter-spacing:.22em;color:var(--gold);margin:4px 0 16px;font-weight:700}
-  #hint{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);
-    font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--dim);
-    white-space:nowrap;transition:opacity 1.6s}
+  #topL b{color:var(--danger);font-weight:700;margin-left:6px}
+  #whoami{margin-left:16px;color:var(--lime)}
+  #topR{position:absolute;top:12px;right:16px;display:flex;gap:10px;align-items:center}
+  #timer{font-variant-numeric:tabular-nums;font-size:clamp(13px,3.6vw,15px);letter-spacing:.14em;color:var(--ink);font-weight:600}
+  #topR button{pointer-events:auto;background:rgba(20,11,36,.55);border:1px solid var(--line);
+    color:var(--dim);width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:14px;line-height:1;
+    display:flex;align-items:center;justify-content:center;transition:all .2s;backdrop-filter:blur(5px)}
+  #topR button:hover,#topR button:active{border-color:var(--lime);color:var(--lime);box-shadow:var(--glow-lime)}
+  #coinBtn{color:var(--lime);border-color:rgba(182,255,58,.4)}
+  #quitBtn:hover,#quitBtn:active{border-color:var(--danger);color:var(--danger);box-shadow:0 0 20px rgba(255,79,116,.45)}
+  #quitBtn.armed{border-color:var(--danger);color:var(--danger);background:rgba(255,79,116,.16);width:auto;padding:0 12px;border-radius:17px;font-size:11px;letter-spacing:.1em}
+  #cross{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;border-radius:50%;background:rgba(239,234,252,.85);box-shadow:0 0 9px rgba(182,255,58,.7)}
+  #stamWrap{position:absolute;left:50%;bottom:56px;transform:translateX(-50%);width:min(200px,52vw);height:4px;background:rgba(176,107,255,.16);border-radius:3px;overflow:hidden}
+  #stam{height:100%;width:100%;background:linear-gradient(90deg,var(--purple),var(--purple-l));transition:width .1s linear}
+  #healthWrap{position:absolute;left:50%;bottom:66px;transform:translateX(-50%);width:min(200px,52vw);height:9px;background:rgba(176,107,255,.16);border-radius:6px;overflow:hidden;box-shadow:0 0 0 1px rgba(0,0,0,.4)}
+  #health{height:100%;width:100%;background:linear-gradient(90deg,var(--danger),#ff9d54,var(--lime));transition:width .12s linear}
+  #healthLbl{position:absolute;left:50%;bottom:78px;transform:translateX(-50%);font-size:9px;letter-spacing:.24em;color:var(--dim)}
+  #livesLbl{position:absolute;left:50%;bottom:92px;transform:translateX(-50%);font-size:12px;letter-spacing:.22em;color:var(--dim);white-space:nowrap;transition:opacity .2s}
+  #livesLbl b{color:var(--lime);letter-spacing:.1em;font-weight:400;text-shadow:0 0 10px rgba(182,255,58,.6)}
+  #deathLives{font-size:clamp(16px,4.6vw,20px);letter-spacing:.2em;color:var(--lime);margin:6px 0 18px;font-weight:800;text-shadow:var(--glow-lime)}
+  #hint{position:absolute;left:50%;bottom:calc(26px + var(--safe-b));transform:translateX(-50%);font-size:clamp(9px,2.3vw,11px);letter-spacing:.22em;text-transform:uppercase;color:var(--faint);white-space:nowrap;transition:opacity 1.6s}
   #hint.fade{opacity:0}
   #hunters{position:absolute;right:16px;bottom:22px;text-align:right}
-  #botList{margin-top:6px;font-size:12px;letter-spacing:.1em;line-height:1.8;
-    font-variant-numeric:tabular-nums}
+  #botList{margin-top:6px;font-size:12px;letter-spacing:.1em;line-height:1.8;font-variant-numeric:tabular-nums}
   #botList .nm{font-weight:600}
   #botList .ds{color:var(--dim);margin-left:8px}
 
-  /* ------- overlays ------- */
-  .overlay{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;
-    align-items:center;justify-content:flex-start;text-align:center;padding:24px;
-    overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;
-    background:rgba(4,5,10,.84);backdrop-filter:blur(6px)}
-  /* centre the content when it fits, but let it scroll from the top when it's
-     taller than the screen (phones) instead of clipping the top/bottom */
+  /* top info bars */
+  #fbflare{position:fixed;inset:0;pointer-events:none;z-index:4;opacity:0;transition:opacity .16s;
+    background:radial-gradient(ellipse at center, rgba(182,255,58,.32) 0%, transparent 62%)}
+  #walletBar{position:absolute;top:42px;left:18px;font-size:clamp(10px,2.8vw,12px);letter-spacing:.1em;color:var(--dim);font-variant-numeric:tabular-nums}
+  #walletBar b{color:var(--lime);font-weight:700}
+  #walletBar .earn{color:var(--cyan)}
+  #walletBar .fb{color:#ff9d54}
+  #potBar{position:absolute;top:40px;left:50%;transform:translateX(-50%);text-align:center;font-size:clamp(10px,2.8vw,12px);letter-spacing:.14em;color:var(--dim);font-variant-numeric:tabular-nums}
+  #potBar b{color:var(--lime)}
+  #potBar .locked{color:var(--faint)}
+  #potBar .unlocked{color:var(--purple-l)}
+  #killfeed{position:absolute;top:44px;right:16px;text-align:right;font-size:clamp(10px,2.8vw,12px);line-height:1.7;letter-spacing:.05em;color:var(--lime);text-shadow:0 0 9px rgba(182,255,58,.4)}
+  #killfeed div{transition:opacity .5s}
+
+  /* ---------------- overlays / panels ---------------- */
+  .overlay{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center;padding:clamp(18px,5vw,34px);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;
+    background:radial-gradient(ellipse 90% 60% at 50% -8%, rgba(60,26,104,.55), rgba(8,5,16,.94) 72%);backdrop-filter:blur(12px)}
   .overlay>:first-child{margin-top:auto}
   .overlay>:last-child{margin-bottom:auto}
   .overlay.hide{display:none}
-  /* how-to-play */
-  .helpBody{max-width:540px;text-align:left;margin:8px 0 6px}
-  .helpSec{margin:15px 0}
-  .helpSec h3{font-size:13px;letter-spacing:.16em;color:var(--gold);margin:0 0 5px;font-weight:600;text-transform:uppercase}
-  .helpSec p{font-size:14px;line-height:1.7;color:#d8d2c2;margin:0}
-  .helpSec p b{color:#f6efdd;font-weight:600}
-  .helpLead{max-width:540px;color:#b9b3a3;font-size:13px;line-height:1.6;margin:2px 0 4px}
-  #helpLink{color:var(--gold);cursor:pointer;white-space:nowrap}
-  @media (max-width:640px), (pointer:coarse){
-    .helpSec p{font-size:13px}
-    .helpSec h3{font-size:12px}
-  }
-  .eyebrow{font-size:11px;letter-spacing:.5em;text-transform:uppercase;color:var(--violet);margin-bottom:18px}
-  h1{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(52px,10vw,104px);
-    letter-spacing:.14em;text-indent:.14em;line-height:1;
-    background:linear-gradient(180deg,#f5efdc 20%,#7d7460 90%);
-    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-    text-shadow:0 0 60px rgba(138,107,255,.18)}
-  .sub{font-family:Georgia,serif;font-style:italic;font-size:16px;color:var(--dim);margin-top:14px}
-  .story{max-width:430px;margin:30px auto 0;font-size:13.5px;line-height:2;color:#b9b4a3;letter-spacing:.04em}
-  .story em{color:var(--ember);font-style:normal}
-  .story .k{color:var(--violet)}
-  .btn{pointer-events:auto;margin-top:38px;padding:15px 46px;background:transparent;cursor:pointer;
-    border:1px solid rgba(255,206,107,.45);color:var(--gold);
-    font-size:12px;letter-spacing:.42em;text-transform:uppercase;text-indent:.42em;
-    transition:all .25s}
-  .btn:hover{background:rgba(255,206,107,.08);box-shadow:0 0 34px rgba(255,206,107,.25);border-color:var(--gold)}
-  /* ------- auth ------- */
-  #authBox{margin-top:30px;width:320px;max-width:86vw;display:flex;flex-direction:column;align-items:center}
-  .auth-err{color:#e8574a;font-size:12.5px;letter-spacing:.03em;line-height:1.5;margin-bottom:14px;max-width:320px}
+  .eyebrow{font-size:clamp(9px,2.6vw,11px);letter-spacing:.5em;text-transform:uppercase;color:var(--purple-l);margin-bottom:16px;text-indent:.5em}
+
+  h1{font-weight:900;font-size:clamp(46px,14vw,116px);letter-spacing:.01em;line-height:.9;
+    background:linear-gradient(115deg,var(--lime) 8%,#7fe7ff 42%,var(--purple) 92%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+    filter:drop-shadow(0 0 44px rgba(176,107,255,.45))}
+  .sub{font-size:clamp(12px,3.4vw,16px);color:var(--dim);margin-top:14px;letter-spacing:.14em}
+  h2{font-weight:800;font-size:clamp(28px,7vw,52px);letter-spacing:.01em;line-height:1.12}
+  #ovDeath h2{color:var(--danger);text-shadow:0 0 40px rgba(255,79,116,.4)}
+  #ovWin h2{background:linear-gradient(120deg,var(--lime),var(--purple));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 44px rgba(182,255,58,.35))}
+  .stats{margin-top:20px;font-size:clamp(11px,3vw,13px);letter-spacing:.22em;text-transform:uppercase;color:var(--dim);line-height:2.2}
+  .stats b{color:var(--lime)}
+
+  /* buttons */
+  .btn{pointer-events:auto;margin-top:14px;padding:clamp(13px,3.6vw,16px) clamp(26px,6.5vw,44px);cursor:pointer;
+    border-radius:13px;font-size:clamp(11px,3vw,13px);letter-spacing:.16em;text-transform:uppercase;font-weight:700;
+    background:linear-gradient(100deg,var(--lime),var(--lime-d));color:#0a0611;border:none;transition:transform .15s,box-shadow .2s,filter .2s;box-shadow:var(--glow-lime);font-family:inherit}
+  .btn:hover{filter:brightness(1.07);box-shadow:0 0 46px rgba(182,255,58,.55)}
+  .btn:active{transform:scale(.98)}
+  .btn.ghost{background:transparent;color:var(--purple-l);border:1.5px solid var(--line);box-shadow:none}
+  .btn.ghost:hover{border-color:var(--purple);color:#fff;box-shadow:var(--glow-pur);filter:none;background:rgba(176,107,255,.08)}
+  .btn.danger{background:linear-gradient(100deg,#ff6b8a,var(--danger));color:#12040a;box-shadow:0 0 30px rgba(255,79,116,.4)}
+  .btn[disabled]{opacity:.45;pointer-events:none}
+
+  /* ---------------- auth ---------------- */
+  #authBox{margin-top:28px;width:340px;max-width:88vw;display:flex;flex-direction:column;align-items:center}
+  .auth-err{color:var(--danger);font-size:12.5px;letter-spacing:.02em;line-height:1.5;margin-bottom:14px;max-width:340px;
+    background:rgba(255,79,116,.1);border:1px solid rgba(255,79,116,.3);border-radius:10px;padding:10px 14px}
   .auth-err.hide{display:none}
-  .auth-panel{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%}
+  .auth-panel{display:flex;flex-direction:column;align-items:center;gap:11px;width:100%}
   .auth-panel.hide{display:none}
-  .auth-input{pointer-events:auto;width:100%;background:rgba(233,227,209,.06);border:1px solid rgba(255,206,107,.3);
-    color:var(--bone);text-align:center;font-size:14px;letter-spacing:.06em;padding:12px 14px;outline:none}
-  .auth-input:focus{border-color:var(--gold)}
-  .auth-input::placeholder{color:#565b6e;letter-spacing:.06em}
-  .auth-input.code{letter-spacing:.5em;font-size:20px;font-variant-numeric:tabular-nums;text-indent:.5em}
-  #authBox .btn{margin-top:8px;padding:14px 40px}
-  #authBox .btn[disabled]{opacity:.5;pointer-events:none}
+  .auth-input{pointer-events:auto;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:11px;
+    color:var(--ink);text-align:center;font-size:15px;letter-spacing:.04em;padding:14px 16px;outline:none;transition:border-color .2s,box-shadow .2s;font-family:inherit}
+  .auth-input:focus{border-color:var(--lime);box-shadow:0 0 0 3px rgba(182,255,58,.14)}
+  .auth-input::placeholder{color:var(--faint);letter-spacing:.04em}
+  .auth-input.code{letter-spacing:.5em;font-size:22px;font-variant-numeric:tabular-nums;text-indent:.5em;color:var(--lime)}
+  #authBox .btn{margin-top:6px;width:100%}
   .auth-links{display:flex;gap:20px;margin-top:8px;flex-wrap:wrap;justify-content:center}
-  .auth-link{pointer-events:auto;cursor:pointer;font-size:11px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase}
-  .auth-link:hover{color:var(--ember)}
+  .auth-link{pointer-events:auto;cursor:pointer;font-size:11.5px;letter-spacing:.1em;color:var(--dim);text-transform:uppercase;transition:color .2s}
+  .auth-link:hover{color:var(--lime)}
   .auth-link.disabled{opacity:.4;pointer-events:none;cursor:default}
-  .auth-note{font-size:12.5px;color:#b9b4a3;line-height:1.6;letter-spacing:.03em;max-width:300px}
-  .auth-note b{color:var(--bone)}
-  #gfx{margin-top:24px;display:flex;align-items:center;gap:9px}
-  .gfxlabel{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:#565b6e;margin-right:2px}
-  .gfxbtn{pointer-events:auto;background:transparent;border:1px solid rgba(233,227,209,.2);
-    color:var(--dim);padding:7px 17px;cursor:pointer;font-size:10px;letter-spacing:.26em;
-    text-transform:uppercase;transition:all .2s}
-  .gfxbtn:hover{border-color:var(--ember);color:var(--ember)}
-  .gfxbtn.on{border-color:var(--gold);color:var(--gold);background:rgba(255,206,107,.07);
-    box-shadow:0 0 18px rgba(255,206,107,.14)}
-  .fine{margin-top:26px;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#565b6e}
+  .auth-note{font-size:13px;color:#c3bcd8;line-height:1.6;letter-spacing:.02em;max-width:320px}
+  .auth-note b{color:var(--ink)}
+  #joinInfo{color:var(--lime);min-height:1.4em;font-weight:600;letter-spacing:.05em}
+  #joinInfo b{color:#fff}
+
+  #gfx{margin-top:22px;display:flex;align-items:center;gap:9px}
+  .gfxlabel{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--faint);margin-right:2px}
+  .gfxbtn{pointer-events:auto;background:var(--panel);border:1px solid var(--line);border-radius:9px;
+    color:var(--dim);padding:8px 18px;cursor:pointer;font-size:10px;letter-spacing:.22em;text-transform:uppercase;transition:all .2s;font-family:inherit}
+  .gfxbtn:hover{border-color:var(--purple);color:var(--purple-l)}
+  .gfxbtn.on{border-color:var(--lime);color:var(--lime);background:rgba(182,255,58,.08);box-shadow:0 0 16px rgba(182,255,58,.16)}
+  .fine{margin-top:24px;font-size:clamp(9px,2.4vw,10.5px);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);line-height:1.9;max-width:92vw}
   .fine b{color:var(--dim)}
-  h2{font-family:Georgia,serif;font-weight:400;font-size:clamp(30px,6vw,54px);letter-spacing:.1em;line-height:1.25}
-  #ovDeath h2{color:#e8574a;text-shadow:0 0 40px rgba(255,59,47,.35)}
-  #ovWin h2{background:linear-gradient(180deg,#ffe9ad,#c98f2e);
-    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-    text-shadow:0 0 60px rgba(255,206,107,.3)}
-  .stats{margin-top:20px;font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:var(--dim);line-height:2.2}
-  .stats b{color:var(--bone)}
-  /* ------- economy HUD ------- */
-  #fbflare{position:fixed;inset:0;pointer-events:none;z-index:4;opacity:0;transition:opacity .16s;
-    background:radial-gradient(ellipse at center, rgba(255,150,50,.4) 0%, transparent 62%)}
-  #walletBar{position:absolute;top:42px;left:18px;font-size:12px;letter-spacing:.12em;
-    color:var(--dim);font-variant-numeric:tabular-nums}
-  #walletBar b{color:var(--gold);font-weight:600}
-  #walletBar .earn{color:var(--beacon)}
-  #walletBar .fb{color:var(--ember)}
-  #potBar{position:absolute;top:40px;left:50%;transform:translateX(-50%);text-align:center;
-    font-size:12px;letter-spacing:.16em;color:var(--dim);font-variant-numeric:tabular-nums}
-  #potBar b{color:var(--gold)}
-  #potBar .locked{color:#565b6e}
-  #potBar .unlocked{color:var(--gold)}
-  #killfeed{position:absolute;top:44px;right:16px;text-align:right;font-size:12px;line-height:1.7;
-    letter-spacing:.06em;color:var(--ember);text-shadow:0 0 8px rgba(255,120,40,.4)}
-  #killfeed div{transition:opacity .5s}
-  #spectateBanner{position:absolute;left:50%;top:16%;transform:translateX(-50%);z-index:7;pointer-events:none;
-    text-align:center;font-size:17px;line-height:1.7;letter-spacing:.06em;color:#f4ecd8;max-width:92vw;width:460px;
-    background:rgba(4,5,10,.88);padding:28px 34px;border:2px solid rgba(255,206,107,.8);border-radius:12px;
-    box-shadow:0 0 80px rgba(255,206,107,.45);animation:specpulse 1.8s ease-in-out infinite}
-  #spectateBanner b{display:block;font-size:25px;letter-spacing:.32em;color:var(--gold);margin-bottom:14px}
-  #spectateBanner .specBtn{pointer-events:auto;display:inline-block;margin-top:22px;cursor:pointer;
-    font-size:16px;letter-spacing:.18em;text-transform:uppercase;color:#05060a;font-weight:700;
-    background:linear-gradient(90deg,#ffd166,#ffb247);border:none;border-radius:9px;padding:15px 32px;
-    box-shadow:0 0 30px rgba(255,206,107,.6)}
+  #helpLink{color:var(--lime);cursor:pointer;white-space:nowrap}
+
+  /* trust strip on start */
+  #trust{margin-top:20px;display:flex;gap:clamp(10px,4vw,26px);flex-wrap:wrap;justify-content:center;max-width:92vw}
+  #trust .t{display:flex;flex-direction:column;align-items:center;gap:3px}
+  #trust .t .ic{font-size:17px;filter:grayscale(.1)}
+  #trust .t .lb{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+
+  /* ---------------- spectate banner ---------------- */
+  #spectateBanner{position:absolute;left:50%;top:15%;transform:translateX(-50%);z-index:7;pointer-events:none;
+    text-align:center;font-size:clamp(14px,4vw,17px);line-height:1.7;letter-spacing:.04em;color:#efeafc;max-width:92vw;width:min(460px,92vw);
+    background:linear-gradient(160deg,rgba(40,22,72,.9),rgba(12,7,24,.92));border:1.5px solid rgba(182,255,58,.5);border-radius:18px;padding:clamp(20px,5vw,30px);
+    box-shadow:0 0 70px rgba(176,107,255,.4),inset 0 0 40px rgba(176,107,255,.08);animation:specpulse 2.2s ease-in-out infinite;backdrop-filter:blur(6px)}
+  #spectateBanner b{display:block;font-size:clamp(18px,5vw,24px);letter-spacing:.28em;color:var(--lime);margin-bottom:12px;text-shadow:var(--glow-lime)}
+  #spectateBanner .specBtn{pointer-events:auto;display:inline-block;margin-top:18px;cursor:pointer;
+    font-size:clamp(14px,3.6vw,16px);letter-spacing:.14em;text-transform:uppercase;color:#0a0611;font-weight:800;
+    background:linear-gradient(100deg,var(--lime),var(--lime-d));border:none;border-radius:12px;padding:14px 30px;box-shadow:var(--glow-lime);font-family:inherit}
   #spectateBanner .specBtn:active{transform:scale(.97)}
+  #spectateBanner .specBtn.hide{display:none}
   #spectateBanner.hide{display:none}
-  @keyframes specpulse{0%,100%{border-color:rgba(255,206,107,.35)}50%{border-color:rgba(255,206,107,.85)}}
-  .cashTabs{display:flex;gap:6px;margin:6px 0}
-  .cashTab{flex:1;padding:7px;background:rgba(233,227,209,.08);border:1px solid rgba(233,227,209,.16);
-    color:var(--dim);border-radius:4px;cursor:pointer;font:inherit;letter-spacing:.08em}
-  .cashTab.on{color:var(--gold);border-color:rgba(255,206,107,.5)}
-  #cashSection .auth-input{margin:4px 0}
-  .attest{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--dim);margin:6px 0;cursor:pointer}
-  .payMsg{font-size:12px;color:var(--gold);min-height:1.1em;margin-top:6px;line-height:1.5}
-  .payHint{font-size:11px;color:#8b8fa3;letter-spacing:.02em;margin:2px 2px 0;text-align:left}
-  .payHistory{margin-top:8px;max-height:130px;overflow:auto}
-  .payHistory .prow{display:flex;justify-content:space-between;align-items:center;gap:8px;
-    font-size:12px;padding:4px 0;border-top:1px solid rgba(233,227,209,.08)}
-  .payHistory .pst{color:var(--dim)}
-  .payHistory .pst.ok{color:#6ee7a8}.payHistory .pst.bad{color:#e8574a}.payHistory .pst.wait{color:#ffd166}
-  .payHistory .refresh{font-size:11px;color:var(--gold);cursor:pointer;background:none;
-    border:1px solid rgba(255,206,107,.4);border-radius:3px;padding:2px 7px}
-  #coinBtn{pointer-events:auto;background:transparent;border:1px solid rgba(255,206,107,.35);
-    color:var(--gold);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:13px;line-height:1}
-  #coinBtn:hover{border-color:var(--gold);background:rgba(255,206,107,.08)}
-  #fireBtn{position:fixed;right:20px;bottom:120px;z-index:8;pointer-events:auto;width:66px;height:66px;
-    border-radius:50%;border:1px solid rgba(255,120,40,.6);background:rgba(255,120,40,.14);color:#ffd9a0;
-    font-size:26px;cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none}
+  @keyframes specpulse{0%,100%{border-color:rgba(182,255,58,.35);box-shadow:0 0 50px rgba(176,107,255,.3),inset 0 0 40px rgba(176,107,255,.06)}50%{border-color:rgba(182,255,58,.85);box-shadow:0 0 80px rgba(176,107,255,.5),inset 0 0 40px rgba(176,107,255,.12)}}
+
+  #fireBtn{position:fixed;right:20px;bottom:calc(120px + var(--safe-b));z-index:8;pointer-events:auto;width:66px;height:66px;
+    border-radius:50%;border:1.5px solid rgba(182,255,58,.55);background:radial-gradient(circle at 50% 40%,rgba(182,255,58,.22),rgba(20,11,36,.6));color:#ffd9a0;
+    font-size:28px;cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none;box-shadow:0 0 24px rgba(182,255,58,.3);display:flex;align-items:center;justify-content:center}
+  #fireBtn:active{transform:scale(.94)}
   #fireBtn.hide{display:none}
-  .walletBalances{display:flex;gap:26px;margin:22px 0;font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
-  .walletBalances b{display:block;font-size:26px;letter-spacing:.06em;color:var(--gold);margin-top:6px;font-variant-numeric:tabular-nums}
-  .walletActions{display:flex;flex-direction:column;align-items:center;gap:10px;width:320px;max-width:86vw}
+
+  /* ---------------- wallet ---------------- */
+  .walletBalances{display:flex;gap:10px;margin:20px 0;width:min(360px,90vw)}
+  .walletBalances>div{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 6px;
+    font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);display:flex;flex-direction:column;gap:7px}
+  .walletBalances b{font-size:clamp(20px,6vw,26px);letter-spacing:.02em;color:var(--lime);font-variant-numeric:tabular-nums;font-weight:800}
+  .walletBalances>div:nth-child(2) b{color:var(--cyan)}
+  .walletBalances>div:nth-child(3) b{color:#ff9d54}
+  .walletActions{display:flex;flex-direction:column;align-items:center;gap:9px;width:min(360px,90vw)}
   .walletActions .btn{margin-top:0;width:100%}
-  .walletHistory{margin:18px 0;max-height:34vh;overflow-y:auto;width:340px;max-width:88vw;font-size:12px;
-    letter-spacing:.04em;color:#9a9686;font-variant-numeric:tabular-nums;pointer-events:auto}
-  .walletHistory .row{display:flex;justify-content:space-between;padding:4px 2px;border-bottom:1px solid rgba(233,227,209,.06)}
-  .walletHistory .pos{color:#6ee7a8}
-  .walletHistory .neg{color:#e8574a}
-  #summaryBox{margin-top:16px;font-size:12.5px;letter-spacing:.06em;color:var(--dim);line-height:1.9;
-    font-variant-numeric:tabular-nums;text-transform:none}
-  #summaryBox .me{color:var(--gold)}
-  /* ------- minimap ------- */
-  #mapCanvas{position:fixed;left:16px;bottom:16px;z-index:6;pointer-events:none;
-    border:1px solid rgba(255,206,107,.28);box-shadow:0 0 20px rgba(0,0,0,.6);border-radius:3px}
+  .walletHistory{margin:16px 0;max-height:32vh;overflow-y:auto;width:min(380px,92vw);font-size:12px;letter-spacing:.03em;color:#a49dbb;font-variant-numeric:tabular-nums;pointer-events:auto}
+  .walletHistory .row{display:flex;justify-content:space-between;padding:8px 4px;border-bottom:1px solid rgba(176,107,255,.1)}
+  .walletHistory .pos{color:var(--lime)}
+  .walletHistory .neg{color:var(--danger)}
+  .cashTabs{display:flex;gap:7px;margin:8px 0;width:min(360px,90vw)}
+  .cashTab{flex:1;padding:9px;background:var(--panel);border:1px solid var(--line);color:var(--dim);border-radius:10px;cursor:pointer;font:inherit;font-size:12px;letter-spacing:.06em;transition:all .2s}
+  .cashTab.on{color:var(--lime);border-color:rgba(182,255,58,.5);background:rgba(182,255,58,.06)}
+  #cashSection{width:min(360px,90vw)}
+  #cashSection .auth-input{margin:5px 0}
+  .attest{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--dim);margin:8px 2px;cursor:pointer;text-align:left;line-height:1.4}
+  .attest input{accent-color:var(--lime);width:16px;height:16px;flex:none}
+  .payMsg{font-size:12.5px;color:var(--lime);min-height:1.1em;margin-top:8px;line-height:1.5}
+  .payHint{font-size:11px;color:var(--dim);letter-spacing:.01em;margin:3px 4px 0;text-align:left}
+  .payHistory{margin-top:10px;max-height:140px;overflow:auto}
+  .payHistory .prow{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;padding:6px 0;border-top:1px solid rgba(176,107,255,.1)}
+  .payHistory .pst{color:var(--dim)}
+  .payHistory .pst.ok{color:var(--lime)}.payHistory .pst.bad{color:var(--danger)}.payHistory .pst.wait{color:var(--purple-l)}
+  .payHistory .refresh{font-size:11px;color:var(--lime);cursor:pointer;background:none;border:1px solid rgba(182,255,58,.4);border-radius:7px;padding:3px 9px;font-family:inherit}
+  #summaryBox{margin-top:16px;font-size:12.5px;letter-spacing:.04em;color:var(--dim);line-height:1.95;font-variant-numeric:tabular-nums;
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 18px;width:min(360px,90vw)}
+  #summaryBox .me{color:var(--lime);font-weight:600}
+
+  /* ---------------- how to play ---------------- */
+  .helpLead{max-width:560px;color:#c3bcd8;font-size:clamp(13px,3.4vw,14.5px);line-height:1.65;margin:4px auto 6px}
+  .helpBody{max-width:560px;text-align:left;margin:10px 0 4px;width:100%}
+  .helpSec{margin:16px 0;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px 18px}
+  .helpSec h3{font-size:clamp(12px,3.2vw,13.5px);letter-spacing:.12em;color:var(--lime);margin:0 0 6px;font-weight:700;text-transform:uppercase}
+  .helpSec p{font-size:clamp(13px,3.4vw,14.5px);line-height:1.7;color:#cfc9df;margin:0}
+  .helpSec p b{color:var(--purple-l);font-weight:600}
+
+  /* ---------------- minimap ---------------- */
+  #mapCanvas{position:fixed;left:16px;bottom:calc(16px + var(--safe-b));z-index:6;pointer-events:none;
+    border:1px solid rgba(182,255,58,.32);box-shadow:0 0 22px rgba(0,0,0,.6);border-radius:8px}
   #mapCanvas.hide{display:none}
-  /* phones: shrink the in-game HUD so text/bars/map don't look oversized */
+
+  /* ---------------- phones ---------------- */
   @media (max-width:640px), (pointer:coarse){
     #hunters{display:none}
-    #hint{font-size:9px;letter-spacing:.18em;bottom:20px}
-    #timer{font-size:12px;letter-spacing:.1em}
-    /* declutter the top: one strip per row, no overlap */
     #topL{top:10px;left:10px}
-    #topL .tag,.tag{font-size:8px;letter-spacing:.22em}
-    #whoami{display:none}                          /* you know who you are in-game */
-    #topR{top:8px;right:8px}
-    #walletBar{top:42px;left:10px;font-size:10px;letter-spacing:.04em}       /* row 2 left */
-    #potBar{top:63px;left:10px;right:auto;transform:none;text-align:left;     /* row 3, full width */
-      font-size:10px;letter-spacing:.06em;white-space:nowrap}
-    #killfeed{top:42px;right:10px;font-size:10px;line-height:1.5;max-width:50vw}  /* row 2 right */
-    #stamWrap,#healthWrap{width:140px}
+    #whoami{display:none}
+    #topR{top:8px;right:8px;gap:8px}
+    #topR button{width:32px;height:32px;font-size:13px}
+    #walletBar{top:42px;left:10px;white-space:nowrap}
+    #potBar{top:63px;left:10px;right:auto;transform:none;text-align:left;white-space:nowrap}
+    #killfeed{top:42px;right:10px;max-width:48vw}
+    #stamWrap,#healthWrap{width:min(150px,44vw)}
     #stamWrap{bottom:46px}
     #healthWrap{bottom:55px;height:7px}
     #healthLbl{bottom:66px;font-size:8px}
-    /* lives up top (row 4) — the bottom cluster is cramped against the browser toolbar */
     #livesLbl{top:84px;left:10px;bottom:auto;transform:none;font-size:12px;letter-spacing:.14em;color:var(--dim)}
     #livesLbl b{font-size:14px;letter-spacing:.08em}
-    #mapCanvas{left:10px;bottom:10px}
-    #spectateBanner{top:15%;font-size:15px;line-height:1.6;padding:22px 20px;max-width:92vw;width:auto}
-    #spectateBanner b{font-size:20px;letter-spacing:.18em;margin-bottom:10px}
-    #spectateBanner .specBtn{font-size:15px;padding:15px 28px;margin-top:16px}
+    #mapCanvas{left:10px}
   }
 </style>
 </head>
@@ -242,183 +230,189 @@
 <div id="vig"></div><div id="danger"></div><div id="shield"></div><div id="flash"></div><div id="fbflare"></div>
 
 <div id="hud">
-  <div id="topL" class="tag">Deaths<b id="deaths">0</b><span id="whoami" style="margin-left:16px;color:var(--gold)"></span></div>
-  <div id="topR"><span id="timer">00:00</span><button id="coinBtn" title="wallet">◈</button><button id="helpBtnGame" title="how to play">?</button><button id="mute" title="sound">♪</button><button id="quitBtn" title="quit the round">⏻</button></div>
-  <div id="walletBar">◈ <b id="wCredit">0</b> · <span class="earn" id="wEarn">0</span> earn · <span class="fb">🔥<b id="wFb">0</b></span></div>
-  <div id="potBar">POT <b id="potVal">0</b> · <span id="entryVal"></span> · <span id="bonusVal"></span></div>
+  <div id="topL" class="tag">Morts<b id="deaths">0</b><span id="whoami"></span></div>
+  <div id="topR"><span id="timer">00:00</span><button id="coinBtn" title="portefeuille">◈</button><button id="helpBtnGame" title="comment jouer">?</button><button id="mute" title="son">♪</button><button id="quitBtn" title="quitter la partie">⏻</button></div>
+  <div id="walletBar">◈ <b id="wCredit">0</b> · <span class="earn" id="wEarn">0</span> gains · <span class="fb">🔥<b id="wFb">0</b></span></div>
+  <div id="potBar">CAGNOTTE <b id="potVal">0</b> · <span id="entryVal"></span> · <span id="bonusVal"></span></div>
   <div id="killfeed"></div>
   <div id="cross"></div>
-  <div id="livesLbl">LIVES <b id="lives"></b></div>
-  <div id="healthLbl">HEALTH</div>
+  <div id="livesLbl">VIES <b id="lives"></b></div>
+  <div id="healthLbl">SANTÉ</div>
   <div id="healthWrap"><div id="health"></div></div>
   <div id="stamWrap"><div id="stam"></div></div>
-  <div id="hunters"><div class="tag">Hunters in the maze</div><div id="botList"></div></div>
-  <div id="hint">WASD move · mouse look · Shift sprint · click throw fireball · E beacon</div>
+  <div id="hunters"><div class="tag">Chasseurs dans le labyrinthe</div><div id="botList"></div></div>
+  <div id="hint">ZQSD se déplacer · souris regarder · Maj courir · clic lancer une boule de feu · E balise</div>
 </div>
 <div id="spectateBanner" class="hide">
-  <b id="specTitle">◉ SPECTATING</b>
+  <b id="specTitle">◉ SPECTATEUR</b>
   <div id="specMsg"></div>
-  <button class="specBtn" id="specWalletBtn">◈ Open Wallet</button>
+  <button class="specBtn" id="specWalletBtn">◈ Ouvrir le portefeuille</button>
 </div>
 <button id="fireBtn" class="hide">🔥</button>
 
 <div class="overlay" id="ovStart">
-  <div class="eyebrow">A treasure hunt in the dark</div>
-  <h1>UMBRA</h1>
-  <div class="sub">the maze that eats light</div>
+  <div class="eyebrow">Une chasse au trésor dans le noir</div>
+  <h1>DEVOREUR</h1>
+  <div class="sub">le labyrinthe qui dévore la lumière</div>
 
   <div id="authBox">
     <div id="authErr" class="auth-err hide"></div>
 
     <!-- sign in -->
     <div class="auth-panel" id="pSignin">
-      <input class="auth-input" id="siEmail" type="email" placeholder="email" autocomplete="username">
-      <input class="auth-input" id="siPass" type="password" placeholder="password" autocomplete="current-password">
-      <button class="btn" id="siBtn">Sign in</button>
+      <input class="auth-input" id="siEmail" type="email" placeholder="e-mail" autocomplete="username">
+      <input class="auth-input" id="siPass" type="password" placeholder="mot de passe" autocomplete="current-password">
+      <button class="btn" id="siBtn">Se connecter</button>
       <div class="auth-links">
-        <span class="auth-link" id="toSignup">Create account</span>
-        <span class="auth-link" id="toForgot">Forgot password?</span>
+        <span class="auth-link" id="toSignup">Créer un compte</span>
+        <span class="auth-link" id="toForgot">Mot de passe oublié ?</span>
       </div>
     </div>
 
     <!-- sign up -->
     <div class="auth-panel hide" id="pSignup">
-      <input class="auth-input" id="suName" maxlength="16" placeholder="display name" autocomplete="nickname">
-      <input class="auth-input" id="suEmail" type="email" placeholder="email" autocomplete="email">
-      <input class="auth-input" id="suPass" type="password" placeholder="password (min 6)" autocomplete="new-password">
-      <button class="btn" id="suBtn">Create account</button>
-      <div class="auth-links"><span class="auth-link" id="toSignin">Have an account? Sign in</span></div>
+      <input class="auth-input" id="suName" maxlength="16" placeholder="pseudo" autocomplete="nickname">
+      <input class="auth-input" id="suEmail" type="email" placeholder="e-mail" autocomplete="email">
+      <input class="auth-input" id="suPass" type="password" placeholder="mot de passe (min. 6)" autocomplete="new-password">
+      <button class="btn" id="suBtn">Créer le compte</button>
+      <div class="auth-links"><span class="auth-link" id="toSignin">Déjà inscrit ? Se connecter</span></div>
     </div>
 
     <!-- verify signup OTP -->
     <div class="auth-panel hide" id="pOtp">
-      <div class="auth-note">Enter the code we emailed to <b id="otpEmail"></b></div>
+      <div class="auth-note">Entrez le code envoyé à <b id="otpEmail"></b></div>
       <input class="auth-input code" id="otpCode" inputmode="numeric" maxlength="10" placeholder="code" autocomplete="one-time-code">
-      <button class="btn" id="otpBtn">Verify &amp; play</button>
-      <div class="auth-links"><span class="auth-link" id="otpResend">Resend code</span><span class="auth-link" id="otpBack">Back</span></div>
+      <button class="btn" id="otpBtn">Vérifier et jouer</button>
+      <div class="auth-links"><span class="auth-link" id="otpResend">Renvoyer le code</span><span class="auth-link" id="otpBack">Retour</span></div>
     </div>
 
     <!-- forgot password -->
     <div class="auth-panel hide" id="pForgot">
-      <div class="auth-note">We'll email you a code to reset your password.</div>
-      <input class="auth-input" id="fgEmail" type="email" placeholder="email" autocomplete="email">
-      <button class="btn" id="fgBtn">Send reset code</button>
-      <div class="auth-links"><span class="auth-link" id="fgBack">Back</span></div>
+      <div class="auth-note">Nous vous enverrons un code pour réinitialiser votre mot de passe.</div>
+      <input class="auth-input" id="fgEmail" type="email" placeholder="e-mail" autocomplete="email">
+      <button class="btn" id="fgBtn">Envoyer le code</button>
+      <div class="auth-links"><span class="auth-link" id="fgBack">Retour</span></div>
     </div>
 
     <!-- reset password with OTP -->
     <div class="auth-panel hide" id="pReset">
-      <div class="auth-note">Enter the code we emailed to <b id="rsEmail"></b> and a new password.</div>
+      <div class="auth-note">Entrez le code envoyé à <b id="rsEmail"></b> et un nouveau mot de passe.</div>
       <input class="auth-input code" id="rsCode" inputmode="numeric" maxlength="10" placeholder="code" autocomplete="one-time-code">
-      <input class="auth-input" id="rsPass" type="password" placeholder="new password (min 6)" autocomplete="new-password">
-      <button class="btn" id="rsBtn">Set password &amp; play</button>
-      <div class="auth-links"><span class="auth-link" id="rsResend">Resend code</span><span class="auth-link" id="rsBack">Back</span></div>
+      <input class="auth-input" id="rsPass" type="password" placeholder="nouveau mot de passe (min. 6)" autocomplete="new-password">
+      <button class="btn" id="rsBtn">Définir et jouer</button>
+      <div class="auth-links"><span class="auth-link" id="rsResend">Renvoyer le code</span><span class="auth-link" id="rsBack">Retour</span></div>
     </div>
 
     <!-- signed in, ready -->
     <div class="auth-panel hide" id="pReady">
-      <div class="auth-note">Signed in as <b id="whoName"></b></div>
-      <div id="joinInfo" class="auth-note" style="color:var(--gold);min-height:1.4em"></div>
-      <button class="btn" id="playBtn">Enter the maze</button>
-      <button class="btn" id="walletBtn">Wallet · deposit / cash out</button>
-      <button class="btn" id="helpBtn">How to play</button>
-      <div class="auth-links"><span class="auth-link" id="signoutLink">Sign out</span></div>
+      <div class="auth-note">Connecté en tant que <b id="whoName"></b></div>
+      <div id="joinInfo" class="auth-note"></div>
+      <button class="btn" id="playBtn">Entrer dans le labyrinthe</button>
+      <button class="btn ghost" id="walletBtn">Portefeuille · dépôt / retrait</button>
+      <button class="btn ghost" id="helpBtn">Comment jouer</button>
+      <div class="auth-links"><span class="auth-link" id="signoutLink">Se déconnecter</span></div>
     </div>
   </div>
 
-  <div id="gfx">
-    <span class="gfxlabel">Graphics</span>
-    <button class="gfxbtn" id="gfxLow">Low</button>
-    <button class="gfxbtn" id="gfxHigh">High</button>
+  <div id="trust">
+    <div class="t"><span class="ic">🏆</span><span class="lb">Cagnotte 15 000+</span></div>
+    <div class="t"><span class="ic">⚡</span><span class="lb">Multijoueur en direct</span></div>
+    <div class="t"><span class="ic">📱</span><span class="lb">Mobile money</span></div>
   </div>
-  <div class="fine"><b>live multiplayer</b> — everyone shares one maze · first to the Heart wins · <span id="helpLink">How to play</span></div>
+
+  <div id="gfx">
+    <span class="gfxlabel">Graphismes</span>
+    <button class="gfxbtn" id="gfxLow">Bas</button>
+    <button class="gfxbtn" id="gfxHigh">Élevé</button>
+  </div>
+  <div class="fine"><b>multijoueur en direct</b> — un seul labyrinthe pour tous · le premier au Cœur gagne · <span id="helpLink">Comment jouer</span></div>
 </div>
 
 <div class="overlay hide" id="ovDeath">
-  <div class="eyebrow" style="color:#e8574a">It was already behind you</div>
-  <h2 id="deathTitle">A Darkness Eater found you</h2>
-  <div id="deathLives">3 lives left</div>
-  <button class="btn" id="respawnBtn" style="border-color:rgba(232,87,74,.5);color:#e8574a">Rise again</button>
-  <button class="btn hide" id="reviveBtn" style="border-color:rgba(255,206,107,.6);color:var(--gold)">Pay for 4 more lives</button>
-  <div id="reviveMsg" style="margin-top:10px;font-size:11px;letter-spacing:.14em;color:var(--dim);min-height:14px"></div>
+  <div class="eyebrow" style="color:var(--danger)">Il était déjà derrière vous</div>
+  <h2 id="deathTitle">Un Dévoreur de Lumière vous a trouvé</h2>
+  <div id="deathLives">3 vies restantes</div>
+  <button class="btn danger" id="respawnBtn">Renaître</button>
+  <button class="btn hide" id="reviveBtn">Payer pour 4 vies de plus</button>
+  <div id="reviveMsg" style="margin-top:10px;font-size:11px;letter-spacing:.1em;color:var(--dim);min-height:14px"></div>
 </div>
 
 <div class="overlay hide" id="ovWin">
-  <div class="eyebrow" style="color:var(--gold)">The keepers howl in the dark</div>
-  <h2 id="winTitle">The Heart of the Maze is claimed</h2>
+  <div class="eyebrow">Les gardiens hurlent dans le noir</div>
+  <h2 id="winTitle">Le Cœur du labyrinthe est réclamé</h2>
   <div id="summaryBox"></div>
-  <div class="stats">Everyone returns to the entrance — rejoin to play · <b id="countdown">10</b>s</div>
+  <div class="stats">Tout le monde retourne à l'entrée — rejoignez pour jouer · <b id="countdown">10</b>s</div>
 </div>
 
 <div class="overlay hide" id="ovWallet">
-  <div class="eyebrow" style="color:var(--gold)">Your wallet</div>
+  <div class="eyebrow">Votre portefeuille</div>
   <div class="walletBalances">
-    <div>Credit<b id="pwCredit">0</b></div>
-    <div>Earnings<b id="pwEarn">0</b></div>
-    <div>Fireballs<b id="pwFb">0</b></div>
+    <div>Crédit<b id="pwCredit">0</b></div>
+    <div>Gains<b id="pwEarn">0</b></div>
+    <div>Boules de feu<b id="pwFb">0</b></div>
   </div>
   <div class="walletActions">
-    <input id="xferAmt" class="auth-input" inputmode="numeric" placeholder="amount to move">
-    <button class="btn" id="xferBtn">Move Earnings → Credit</button>
-    <button class="btn" id="shopBtn">Buy 10 fireballs · 100 CDF</button>
+    <input id="xferAmt" class="auth-input" inputmode="numeric" placeholder="montant à transférer">
+    <button class="btn ghost" id="xferBtn">Transférer Gains → Crédit</button>
+    <button class="btn ghost" id="shopBtn">Acheter 10 boules de feu · 100 CDF</button>
   </div>
   <div id="walletMsg" class="payMsg"></div>
 
   <div id="cashSection" class="hide">
-    <div class="eyebrow" style="color:var(--gold);margin-top:10px">Cash · real money (CDF)</div>
+    <div class="eyebrow" style="margin-top:10px">Espèces · argent réel (CDF)</div>
     <div class="cashTabs">
-      <button class="cashTab on" id="tabDeposit">Deposit</button>
-      <button class="cashTab" id="tabWithdraw">Withdraw</button>
+      <button class="cashTab on" id="tabDeposit">Dépôt</button>
+      <button class="cashTab" id="tabWithdraw">Retrait</button>
     </div>
     <select id="payProvider" class="auth-input"></select>
-    <input id="payPhone" class="auth-input" inputmode="tel" placeholder="mobile money number">
+    <input id="payPhone" class="auth-input" inputmode="tel" placeholder="numéro mobile money">
     <div id="payPhoneHint" class="payHint"></div>
-    <input id="payAmount" class="auth-input" inputmode="numeric" placeholder="amount CDF">
-    <label id="attestRow" class="attest hide"><input type="checkbox" id="attestChk"> I confirm I am 18+ and accept the Terms.</label>
-    <button class="btn" id="payBtn">Deposit</button>
+    <input id="payAmount" class="auth-input" inputmode="numeric" placeholder="montant CDF">
+    <label id="attestRow" class="attest hide"><input type="checkbox" id="attestChk"> Je confirme avoir 18 ans ou plus et j'accepte les conditions.</label>
+    <button class="btn" id="payBtn">Déposer</button>
     <div id="payMsg" class="payMsg"></div>
     <div id="payHistory" class="payHistory"></div>
   </div>
 
   <div class="walletHistory" id="walletHistory"></div>
-  <button class="btn" id="walletClose">Close</button>
+  <button class="btn ghost" id="walletClose">Fermer</button>
 </div>
 
 <div class="overlay hide" id="ovHelp">
-  <div class="eyebrow" style="color:var(--gold)">How to play</div>
-  <h2 style="margin-bottom:8px">Reach the Heart. Win the pot.</h2>
-  <div class="helpLead">Everyone shares one pitch-black maze. Somewhere in it beats the <b>Heart of the Maze</b>. Be the first to reach it and you take the whole pot.</div>
+  <div class="eyebrow">Comment jouer</div>
+  <h2 style="margin-bottom:8px">Atteignez le Cœur. Gagnez la cagnotte.</h2>
+  <div class="helpLead">Tout le monde partage un seul labyrinthe plongé dans le noir. Quelque part bat le <b>Cœur du labyrinthe</b>. Soyez le premier à l'atteindre et vous remportez toute la cagnotte.</div>
   <div class="helpBody">
     <div class="helpSec">
-      <h3>◈ The goal</h3>
-      <p>Find the Heart and touch it before anyone else. The winner claims the <b>pot</b>, and every session is guaranteed to pay at least <b>15,000 CDF</b> — even if the pot is smaller, the house tops it up.</p>
+      <h3>◈ Le but</h3>
+      <p>Trouvez le Cœur et touchez-le avant tout le monde. Le gagnant remporte la <b>cagnotte</b>, et chaque session garantit au moins <b>15 000 CDF</b> — même si la cagnotte est plus petite, la maison complète la différence.</p>
     </div>
     <div class="helpSec">
-      <h3>▸ Getting around</h3>
-      <p>On a computer: <b>WASD</b> to move, <b>mouse</b> to look, <b>Shift</b> to sprint, <b>E</b> to drop a beacon. On a phone: drag to look and use the on-screen stick. Careful — <b>sprinting and beacons make you loud</b>, and the hunters listen.</p>
+      <h3>▸ Se déplacer</h3>
+      <p>Sur ordinateur : <b>ZQSD</b> pour bouger, <b>souris</b> pour regarder, <b>Maj</b> pour courir, <b>E</b> pour lâcher une balise. Sur téléphone : glissez pour regarder et utilisez le joystick à l'écran. Attention — <b>courir et les balises font du bruit</b>, et les chasseurs écoutent.</p>
     </div>
     <div class="helpSec">
-      <h3>♥ Your lives</h3>
-      <p>Entry is a flat <b>1,000 CDF</b> and gives you <b>4 lives</b> (shown at the top of the screen). You can <b>join at any time</b> — the price never rises. Every time you're caught you lose one life and respawn somewhere new. Run out and you're out of the hunt: <b>pay 1,000 for 4 more lives</b>, or stay and watch.</p>
+      <h3>♥ Vos vies</h3>
+      <p>L'entrée coûte <b>1 000 CDF</b> et vous donne <b>4 vies</b> (affichées en haut de l'écran). Vous pouvez <b>rejoindre à tout moment</b> — le prix ne monte jamais. Chaque fois que vous êtes attrapé, vous perdez une vie et réapparaissez ailleurs. À court de vies : <b>payez 1 000 pour 4 vies de plus</b>, ou restez et observez.</p>
     </div>
     <div class="helpSec">
-      <h3>👁 The hunters</h3>
-      <p><b>Darkness Eaters</b> prowl the maze, and <b>a new one joins every 5 minutes</b>. They track you by sound and sight — hug the walls, keep moving, and don't get cornered. Each time one catches you, it costs a life.</p>
+      <h3>👁 Les chasseurs</h3>
+      <p>Les <b>Dévoreurs de Lumière</b> rôdent dans le labyrinthe, et <b>un nouveau arrive toutes les 5 minutes</b>. Ils vous traquent par le son et la vue — longez les murs, bougez sans cesse, et ne vous laissez pas coincer. Chaque capture coûte une vie.</p>
     </div>
     <div class="helpSec">
-      <h3>🔥 Fireballs</h3>
-      <p>Buy fireballs in your <b>wallet</b>, then throw them at rivals. A hit burns one of their lives and knocks them off their path — and getting the kill pays <b>you</b> in Earnings. Use them to stop whoever's closing in on the Heart.</p>
+      <h3>🔥 Boules de feu</h3>
+      <p>Achetez des boules de feu dans votre <b>portefeuille</b>, puis lancez-les sur vos rivaux. Un coup brûle une de leurs vies et les repousse de leur chemin — et réussir la mise à mort vous rapporte des <b>gains</b>. Servez-vous-en pour arrêter celui qui approche du Cœur.</p>
     </div>
     <div class="helpSec">
-      <h3>🏆 Winning &amp; the pot</h3>
-      <p>The pot grows from every death and from unused lives when a session ends. Reach the Heart and it's yours (never less than 15,000). If <b>nobody</b> wins within the <b>1-hour</b> session, everyone is sent home and the <b>pot carries over</b> to the next one — so it just keeps building.</p>
+      <h3>🏆 Gagner et la cagnotte</h3>
+      <p>La cagnotte grandit à chaque mort et avec les vies non utilisées en fin de session. Atteignez le Cœur et elle est à vous (jamais moins de 15 000). Si <b>personne</b> ne gagne pendant la session d'<b>1 heure</b>, tout le monde rentre et la <b>cagnotte est reportée</b> à la suivante — elle ne cesse de grossir.</p>
     </div>
     <div class="helpSec">
-      <h3>💰 Real money</h3>
-      <p>Deposit by mobile money into your <b>Credit</b> to enter and buy fireballs. Winnings arrive as <b>Earnings</b>, which you can move to Credit to keep playing or <b>cash out</b> to mobile money any time from the wallet.</p>
+      <h3>💰 Argent réel</h3>
+      <p>Déposez par mobile money sur votre <b>Crédit</b> pour entrer et acheter des boules de feu. Les gains arrivent dans vos <b>Gains</b>, que vous pouvez transférer vers le Crédit pour continuer à jouer ou <b>retirer</b> vers mobile money à tout moment depuis le portefeuille.</p>
     </div>
   </div>
-  <button class="btn" id="helpClose">Got it — let me play</button>
+  <button class="btn" id="helpClose">C'est compris — je joue</button>
 </div>
 
 <canvas id="mapCanvas" class="hide"></canvas>
