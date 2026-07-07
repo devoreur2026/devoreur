@@ -120,10 +120,14 @@ el('coinBtn').addEventListener('click', function(){ el('ovWallet').classList.con
 el('walletBtn').addEventListener('click', function(){ openWallet(true); });   // from the home screen
 el('walletClose').addEventListener('click', closeWallet);
 
-/* ---- how-to-play overlay (home screen) ---- */
-function openHelp(){ el('ovHelp').classList.remove('hide'); }
-function closeHelp(){ el('ovHelp').classList.add('hide'); }
-['helpBtn', 'helpLink'].forEach(function(id){ var n = document.getElementById(id); if (n) n.addEventListener('click', openHelp); });
+/* ---- how-to-play overlay (home screen + in-game "?" button) ---- */
+function openHelp(){
+  state.uiBusy = true;                          // pause game input while reading
+  el('ovHelp').classList.remove('hide');
+  if (document.exitPointerLock) document.exitPointerLock();
+}
+function closeHelp(){ state.uiBusy = false; el('ovHelp').classList.add('hide'); }
+['helpBtn', 'helpLink', 'helpBtnGame'].forEach(function(id){ var n = document.getElementById(id); if (n) n.addEventListener('click', openHelp); });
 var helpCloseBtn = document.getElementById('helpClose'); if (helpCloseBtn) helpCloseBtn.addEventListener('click', closeHelp);
 
 // Earnings -> Credit over HTTP (works from the home screen too, not just in-game,
