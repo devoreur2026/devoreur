@@ -36,15 +36,20 @@ net.on('state', function(){
   var b = el('spectateBanner');
   if (net.spectating){
     if (specReason === 'insufficient')
-      b.innerHTML = '<b>◉ SPECTATING</b>Entry is ' + (e.price || 1000) + ' Credit — you have ' + ((net.wallet && net.wallet.credit) || 0) + '. Open your wallet ◈ to deposit, then you enter the next round.';
+      b.innerHTML = '<b>◉ SPECTATING</b>Entry is ' + (e.price || 1000) + ' Credit — you have ' + ((net.wallet && net.wallet.credit) || 0) + '. Add funds and you jump straight into the maze.<button class="specBtn" id="specWalletBtn">◈ Open Wallet</button>';
     else if (specReason === 'locked')
-      b.innerHTML = '<b>◉ SESSION ENDING</b>This session is finishing. Watch the end — you auto-enter the next one.';
+      b.innerHTML = '<b>◉ SESSION ENDING</b>This session is wrapping up — a fresh one starts in a moment.';
     else
-      b.innerHTML = '<b>◉ SPECTATING</b>You join the next round — roam and watch for now.';
+      b.innerHTML = '<b>◉ SPECTATING</b>Roam and watch — pay the entry and jump in whenever you\'re ready.<button class="specBtn" id="specWalletBtn">◈ Open Wallet</button>';
     b.classList.remove('hide');
   } else {
     b.classList.add('hide');
   }
+});
+// the Open-Wallet button lives inside the banner (rebuilt each tick) -> delegate
+el('spectateBanner').addEventListener('click', function(ev){
+  var t = ev.target;
+  if (t && (t.id === 'specWalletBtn' || (t.closest && t.closest('#specWalletBtn')))) openWallet(false);
 });
 
 /* ---- kill feed ---- */

@@ -358,6 +358,14 @@ export class Room {
     this.t += dt;
     this.refreshFields(dt);
 
+    // entries are always open: a broke spectator who can now afford the fee joins
+    // immediately (no waiting for the next round). Out-of-lives players (paid) are
+    // left alone — re-entry is their explicit choice via the revive button.
+    if (this.entriesOpen()){
+      for (var sp of this.players.values())
+        if (!sp.paid && this.bank.wallet(sp.account).credit >= this.price()) this.enterOrSpectate(sp);
+    }
+
     // escalate the hunt: a new eater joins every EATER_ADD_INTERVAL (5 min)
     var wantEaters = Math.min(MAX_EATERS, KEEPER_COUNT + Math.floor(this.t / EATER_ADD_INTERVAL));
     while (this.eaters.count < wantEaters) this.eaters.addEater();
