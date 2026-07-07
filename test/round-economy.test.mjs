@@ -46,7 +46,7 @@ console.log('— open entry: funded players enter on join; pot / eater-kill / pa
   eq(B.health, MAX_HEALTH, 'respawn restores full health');
 
   room.endRound(A);                                 // A wins: forfeit half of A(1000) + B(750) -> pot, then payout
-  eq(bank.wallet('A').earnings, BONUS_POT, 'winner gets the guaranteed bonus (pot < 15000)');
+  eq(bank.wallet('A').earnings, BONUS_POT, 'winner gets the guaranteed bonus (pot < bonus)');
   var ro = wa.last('roundOver');
   eq(ro.pot, 125 + 500 + 375, 'summary pot = eater share + half of each forfeited stake (1000)');
   eq(ro.target, BONUS_POT, 'payout is the bonus floor'); eq(ro.rolled, 0, 'nothing rolls over on a win');
@@ -110,7 +110,7 @@ console.log('— guaranteed bonus top-up (always on, any player count)');
   eq(room.paidCount, 3, 'three paid players');
   var houseBefore = bank.houseBalance();
   room.endRound(players['A']);                       // forfeit 3 stakes: 1500 -> pot, 1500 -> house, then payout
-  eq(bank.wallet('A').earnings, BONUS_POT, 'winner guaranteed 15000 with only 3 players');
+  eq(bank.wallet('A').earnings, BONUS_POT, 'winner guaranteed the bonus with only 3 players');
   var ro = ws['A'].last('roundOver');
   eq(ro.topup, BONUS_POT - 1500, 'house tops up the gap over the pot (half of 3 stakes)'); ok(ro.bonus, 'bonus always flagged');
   eq(bank.houseBalance(), houseBefore + 1500 - ro.topup, 'house nets its forfeit share minus the top-up');

@@ -28,7 +28,7 @@ net.on('state', function(){
   el('entryVal').textContent = e.open ? ('ENTRÉE ' + (e.price || 0)) : 'ENTRÉES FERMÉES';
   el('entryVal').className = e.open ? '' : 'locked';
   var bv = el('bonusVal');
-  bv.textContent = 'BONUS ' + (e.bonusPot || 15000);   // guaranteed prize floor, always on
+  bv.textContent = 'BONUS ' + (e.bonusPot || 80000);   // guaranteed prize floor, always on
   bv.className = 'unlocked';
   var tEl = document.getElementById('timer');
   if (tEl) tEl.style.color = e.open ? '' : '#e8574a';   // round timer reddens once entries close
@@ -159,6 +159,7 @@ function closeHelp(){ state.uiBusy = false; el('ovHelp').classList.add('hide'); 
 onTap('helpBtn', openHelp); onTap('helpLink', openHelp); onTap('helpBtnGame', openHelp);
 onTap('helpClose', closeHelp);
 onTap('specWalletBtn', function(){ openWallet(false); });   // banner (in-game) -> wallet
+onTap('welcomeBtn', function(){ el('ovWelcome').classList.add('hide'); });   // dismiss the real-money splash
 
 // Earnings -> Credit over HTTP (works from the home screen too, not just in-game,
 // where there'd be no socket). Idempotent per nonce; clear feedback on failure.

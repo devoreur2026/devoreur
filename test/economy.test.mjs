@@ -124,15 +124,15 @@ section('payout: bonus floor even with few players');
   var pot = b.potBalance('r1');
   eq(pot, 1500, 'pot = half of 3 forfeited stakes (3 * 500)');
   var pay = b.payout('A', 'r1', 3);
-  eq(pay.target, BONUS_POT, 'winner gets the guaranteed bonus (15000) even with 3 players');
+  eq(pay.target, BONUS_POT, 'winner gets the guaranteed bonus even with 3 players');
   eq(pay.topup, BONUS_POT - pot, 'house tops up the gap');
-  eq(b.wallet('A').earnings, BONUS_POT, 'winner earnings = 15000');
+  eq(b.wallet('A').earnings, BONUS_POT, 'winner earnings = bonus');
   eq(b.potBalance('r1'), 0, 'pot drained');
   invariants(b, 'r1');
 }
 
 /* ---------- payout: guaranteed 15000, house tops up; a bigger pot wins ---------- */
-section('payout: guaranteed 15000 + top-up / bigger pot');
+section('payout: guaranteed bonus + top-up / bigger pot');
 {
   var b = new Bank();
   ['A', 'B', 'C', 'D', 'E'].forEach(function(p){ b.grant(p, 5000, 'g' + p); b.enterRound(p, 'r1', ENTRY_BASE); });
@@ -141,19 +141,19 @@ section('payout: guaranteed 15000 + top-up / bigger pot');
   eq(pot, 2500, 'pot = half of 5 forfeited stakes (5 * 500)');
   var houseBefore = b.houseBalance();
   var pay = b.payout('A', 'r1', 5);
-  eq(pay.target, BONUS_POT, 'winner guaranteed 15000');
+  eq(pay.target, BONUS_POT, 'winner guaranteed the bonus');
   eq(pay.topup, BONUS_POT - pot, 'house tops up the gap');
-  eq(b.wallet('A').earnings, BONUS_POT, 'winner earnings = 15000');
+  eq(b.wallet('A').earnings, BONUS_POT, 'winner earnings = bonus');
   eq(b.houseBalance(), houseBefore - pay.topup, 'house paid the top-up (goes negative)');
   eq(b.potBalance('r1'), 0, 'pot drained');
   invariants(b, 'r1');
 
   // pot already exceeds the bonus => winner gets the (bigger) pot, no top-up
   var b2 = new Bank();
-  var many = 40;                                    // 40 * 500 (half of each stake) = 20000 > 15000
+  var many = 170;                                   // 170 * 500 (half of each stake) = 85000 > 80000
   for (var i = 0; i < many; i++){ var p = 'X' + i; b2.grant(p, 5000, 'g' + p); b2.enterRound(p, 'r2', ENTRY_BASE); b2.forfeitStake(p, 'r2'); }
   var pot2 = b2.potBalance('r2');
-  ok(pot2 > BONUS_POT, 'pot exceeds 15000 (got ' + pot2 + ')');
+  ok(pot2 > BONUS_POT, 'pot exceeds the bonus (got ' + pot2 + ')');
   var pay2 = b2.payout('X0', 'r2', many);
   eq(pay2.target, pot2, 'winner gets the full (larger) pot');
   eq(pay2.topup, 0, 'no top-up when pot already exceeds the bonus');
@@ -288,7 +288,7 @@ section('pot rollover');
   b.forfeitStake('A', 'R2'); b.forfeitStake('B', 'R2');
   eq(b.potBalance('R2'), 1000 + 1000, 'R2 pot = rollover + half the forfeited entries');
   b.payout('A', 'R2', 2);
-  eq(b.wallet('A').earnings, BONUS_POT, 'winner takes at least the guaranteed bonus (pot 2000 < 15000)');
+  eq(b.wallet('A').earnings, BONUS_POT, 'winner takes at least the guaranteed bonus (pot 2000 < bonus)');
   eq(b.potBalance('R2'), 0, 'R2 pot drained');
   eq(b.auditRound('R2'), 0, 'R2 (rollover + entries + payout) nets to zero');
   b.rollover('R1', 'R2');                            // idempotent

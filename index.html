@@ -205,6 +205,20 @@
     border:1px solid rgba(182,255,58,.32);box-shadow:0 0 22px rgba(0,0,0,.6);border-radius:8px}
   #mapCanvas.hide{display:none}
 
+  /* ---------------- welcome / real-money splash ---------------- */
+  #ovWelcome{z-index:11;background:radial-gradient(ellipse 100% 70% at 50% -5%, rgba(70,30,120,.6), rgba(6,4,12,.97) 70%)}
+  .wKick{font-size:clamp(9px,2.6vw,11px);letter-spacing:.5em;text-transform:uppercase;color:var(--purple-l);margin-bottom:10px;text-indent:.5em}
+  .wMoney{margin-top:16px;font-size:clamp(14px,4vw,21px);font-weight:800;letter-spacing:.03em;color:#0a0611;
+    background:linear-gradient(100deg,var(--lime),var(--lime-d));padding:12px 22px;border-radius:14px;box-shadow:var(--glow-lime);max-width:92vw}
+  .wGrid{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:24px 0 8px;max-width:780px;width:100%}
+  .wCard{flex:1 1 210px;max-width:250px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px 16px;text-align:center}
+  .wCard .wIc{font-size:32px;margin-bottom:8px}
+  .wCard .wT{font-size:clamp(14px,3.6vw,16px);font-weight:700;color:var(--purple-l);letter-spacing:.03em;margin-bottom:6px}
+  .wCard .wD{font-size:clamp(12px,3.2vw,13.5px);color:#cfc9df;line-height:1.55}
+  .wCard .wD b{color:var(--lime)}
+  .wNote{margin-top:14px;max-width:540px;font-size:clamp(11px,3vw,12.5px);color:var(--dim);line-height:1.65}
+  .wNote b{color:var(--ink)}
+
   /* ---------------- phones ---------------- */
   @media (max-width:640px), (pointer:coarse){
     #hunters{display:none}
@@ -249,6 +263,19 @@
   <button class="specBtn" id="specWalletBtn">◈ Ouvrir le portefeuille</button>
 </div>
 <button id="fireBtn" class="hide">🔥</button>
+
+<div class="overlay" id="ovWelcome">
+  <div class="wKick">Bienvenue dans</div>
+  <h1 style="font-size:clamp(40px,13vw,100px)">DEVOREUR</h1>
+  <div class="wMoney">💵 DE L'ARGENT RÉEL — PAS DU FAUX</div>
+  <div class="wGrid">
+    <div class="wCard"><div class="wIc">🏆</div><div class="wT">Trouvez le trésor</div><div class="wD">Atteignez le Cœur du labyrinthe et repartez avec <b>80 000 CDF</b> et plus.</div></div>
+    <div class="wCard"><div class="wIc">🔥</div><div class="wT">Éliminez vos rivaux</div><div class="wD">Brûlez les autres joueurs avec des boules de feu et <b>gagnez de l'argent</b>.</div></div>
+    <div class="wCard"><div class="wIc">🌍</div><div class="wT">En direct, ensemble</div><div class="wD">Jouez en temps réel avec des joueurs <b>partout en RD Congo</b>.</div></div>
+  </div>
+  <div class="wNote">C'est du <b>vrai argent</b> : vous déposez et retirez de vrais <b>francs congolais (CDF)</b> par mobile money. Ce n'est pas de la monnaie fictive. Réservé aux 18 ans et plus — jouez de manière responsable.</div>
+  <button class="btn" id="welcomeBtn">Commencer à jouer</button>
+</div>
 
 <div class="overlay" id="ovStart">
   <div class="eyebrow">Une chasse au trésor dans le noir</div>
@@ -315,7 +342,7 @@
   </div>
 
   <div id="trust">
-    <div class="t"><span class="ic">🏆</span><span class="lb">Cagnotte 15 000+</span></div>
+    <div class="t"><span class="ic">🏆</span><span class="lb">Cagnotte 80 000+</span></div>
     <div class="t"><span class="ic">⚡</span><span class="lb">Multijoueur en direct</span></div>
     <div class="t"><span class="ic">📱</span><span class="lb">Mobile money</span></div>
   </div>
@@ -385,7 +412,7 @@
   <div class="helpBody">
     <div class="helpSec">
       <h3>◈ Le but</h3>
-      <p>Trouvez le Cœur et touchez-le avant tout le monde. Le gagnant remporte la <b>cagnotte</b>, et chaque session garantit au moins <b>15 000 CDF</b> — même si la cagnotte est plus petite, la maison complète la différence.</p>
+      <p>Trouvez le Cœur et touchez-le avant tout le monde. Le gagnant remporte la <b>cagnotte</b>, et chaque session garantit au moins <b>80 000 CDF</b> — même si la cagnotte est plus petite, la maison complète la différence.</p>
     </div>
     <div class="helpSec">
       <h3>▸ Se déplacer</h3>
@@ -405,7 +432,7 @@
     </div>
     <div class="helpSec">
       <h3>🏆 Gagner et la cagnotte</h3>
-      <p>La cagnotte grandit à chaque mort et avec les vies non utilisées en fin de session. Atteignez le Cœur et elle est à vous (jamais moins de 15 000). Si <b>personne</b> ne gagne pendant la session d'<b>1 heure</b>, tout le monde rentre et la <b>cagnotte est reportée</b> à la suivante — elle ne cesse de grossir.</p>
+      <p>La cagnotte grandit à chaque mort et avec les vies non utilisées en fin de session. Atteignez le Cœur et elle est à vous (jamais moins de 80 000). Si <b>personne</b> ne gagne pendant la session d'<b>1 heure</b>, tout le monde rentre et la <b>cagnotte est reportée</b> à la suivante — elle ne cesse de grossir.</p>
     </div>
     <div class="helpSec">
       <h3>💰 Argent réel</h3>
