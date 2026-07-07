@@ -160,6 +160,7 @@ onTap('helpBtn', openHelp); onTap('helpLink', openHelp); onTap('helpBtnGame', op
 onTap('helpClose', closeHelp);
 onTap('specWalletBtn', function(){ openWallet(false); });   // banner (in-game) -> wallet
 onTap('welcomeBtn', function(){ el('ovWelcome').classList.add('hide'); });   // dismiss the real-money splash
+onTap('welcomeHelpBtn', openHelp);   // welcome -> tutorial catalogue (layers above the splash)
 
 // Earnings -> Credit over HTTP (works from the home screen too, not just in-game,
 // where there'd be no socket). Idempotent per nonce; clear feedback on failure.

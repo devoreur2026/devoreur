@@ -67,6 +67,7 @@
   #walletBar b{color:var(--lime);font-weight:700}
   #walletBar .earn{color:var(--cyan)}
   #walletBar .fb{color:#ff9d54}
+  .fbico{width:11px;height:11px;vertical-align:-1px;margin-right:1px}
   #potBar{position:absolute;top:40px;left:50%;transform:translateX(-50%);text-align:center;font-size:clamp(10px,2.8vw,12px);letter-spacing:.14em;color:var(--dim);font-variant-numeric:tabular-nums}
   #potBar b{color:var(--lime)}
   #potBar .locked{color:var(--faint)}
@@ -138,7 +139,8 @@
   /* trust strip on start */
   #trust{margin-top:20px;display:flex;gap:clamp(10px,4vw,26px);flex-wrap:wrap;justify-content:center;max-width:92vw}
   #trust .t{display:flex;flex-direction:column;align-items:center;gap:3px}
-  #trust .t .ic{font-size:17px;filter:grayscale(.1)}
+  #trust .t .ic{width:22px;height:22px;display:inline-flex}
+  #trust .t .ic svg{width:100%;height:100%}
   #trust .t .lb{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
 
   /* ---------------- spectate banner ---------------- */
@@ -157,7 +159,8 @@
 
   #fireBtn{position:fixed;right:20px;bottom:calc(120px + var(--safe-b));z-index:8;pointer-events:auto;width:66px;height:66px;
     border-radius:50%;border:1.5px solid rgba(182,255,58,.55);background:radial-gradient(circle at 50% 40%,rgba(182,255,58,.22),rgba(20,11,36,.6));color:#ffd9a0;
-    font-size:28px;cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none;box-shadow:0 0 24px rgba(182,255,58,.3);display:flex;align-items:center;justify-content:center}
+    cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none;box-shadow:0 0 24px rgba(182,255,58,.3);display:flex;align-items:center;justify-content:center}
+  #fireBtn svg{width:34px;height:34px}
   #fireBtn:active{transform:scale(.94)}
   #fireBtn.hide{display:none}
 
@@ -195,8 +198,12 @@
   /* ---------------- how to play ---------------- */
   .helpLead{max-width:560px;color:#c3bcd8;font-size:clamp(13px,3.4vw,14.5px);line-height:1.65;margin:4px auto 6px}
   .helpBody{max-width:560px;text-align:left;margin:10px 0 4px;width:100%}
-  .helpSec{margin:16px 0;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px 18px}
-  .helpSec h3{font-size:clamp(12px,3.2vw,13.5px);letter-spacing:.12em;color:var(--lime);margin:0 0 6px;font-weight:700;text-transform:uppercase}
+  .helpSec{display:flex;gap:15px;align-items:center;text-align:left;margin:12px 0;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:15px 16px}
+  .tutIll{flex:none;width:clamp(46px,13vw,62px);height:auto;background:rgba(176,107,255,.08);border-radius:12px;padding:5px}
+  .tutIll svg{width:100%;height:auto;display:block}
+  .tutTxt{min-width:0}
+  .helpSec h3{font-size:clamp(12px,3.2vw,13.5px);letter-spacing:.1em;color:var(--lime);margin:0 0 4px;font-weight:700;text-transform:uppercase}
+  #ovHelp{z-index:12}
   .helpSec p{font-size:clamp(13px,3.4vw,14.5px);line-height:1.7;color:#cfc9df;margin:0}
   .helpSec p b{color:var(--purple-l);font-weight:600}
 
@@ -209,10 +216,12 @@
   #ovWelcome{z-index:11;background:radial-gradient(ellipse 100% 70% at 50% -5%, rgba(70,30,120,.6), rgba(6,4,12,.97) 70%)}
   .wKick{font-size:clamp(9px,2.6vw,11px);letter-spacing:.5em;text-transform:uppercase;color:var(--purple-l);margin-bottom:10px;text-indent:.5em}
   .wMoney{margin-top:16px;font-size:clamp(14px,4vw,21px);font-weight:800;letter-spacing:.03em;color:#0a0611;
-    background:linear-gradient(100deg,var(--lime),var(--lime-d));padding:12px 22px;border-radius:14px;box-shadow:var(--glow-lime);max-width:92vw}
+    background:linear-gradient(100deg,var(--lime),var(--lime-d));padding:12px 24px;border-radius:14px;box-shadow:var(--glow-lime);max-width:92vw;display:inline-flex;align-items:center;gap:10px}
+  .wMoney svg{width:22px;height:22px;flex:none}
   .wGrid{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:24px 0 8px;max-width:780px;width:100%}
   .wCard{flex:1 1 210px;max-width:250px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px 16px;text-align:center}
-  .wCard .wIc{font-size:32px;margin-bottom:8px}
+  .wCard .wIc{width:clamp(46px,13vw,58px);height:clamp(46px,13vw,58px);margin:0 auto 10px}
+  .wCard .wIc svg{width:100%;height:100%;display:block}
   .wCard .wT{font-size:clamp(14px,3.6vw,16px);font-weight:700;color:var(--purple-l);letter-spacing:.03em;margin-bottom:6px}
   .wCard .wD{font-size:clamp(12px,3.2vw,13.5px);color:#cfc9df;line-height:1.55}
   .wCard .wD b{color:var(--lime)}
@@ -246,7 +255,7 @@
 <div id="hud">
   <div id="topL" class="tag">Morts<b id="deaths">0</b><span id="whoami"></span></div>
   <div id="topR"><span id="timer">00:00</span><button id="coinBtn" title="portefeuille">◈</button><button id="helpBtnGame" title="comment jouer">?</button><button id="mute" title="son">♪</button><button id="quitBtn" title="quitter la partie">⏻</button></div>
-  <div id="walletBar">◈ <b id="wCredit">0</b> · <span class="earn" id="wEarn">0</span> gains · <span class="fb">🔥<b id="wFb">0</b></span></div>
+  <div id="walletBar">◈ <b id="wCredit">0</b> · <span class="earn" id="wEarn">0</span> gains · <span class="fb"><svg class="fbico" viewBox="0 0 24 24" fill="none"><path d="M12 2c2 4 6 5.5 6 11a6 6 0 0 1-12 0c0-3 1.5-4.5 3.5-6.5.5 1.5.5 2.5 0 4 1.5-.5 2.5-2 2.5-3.5 0-1.5-.5-3 0-5z" stroke="#ff9d54" stroke-width="1.9" stroke-linejoin="round"/></svg><b id="wFb">0</b></span></div>
   <div id="potBar">CAGNOTTE <b id="potVal">0</b> · <span id="entryVal"></span> · <span id="bonusVal"></span></div>
   <div id="killfeed"></div>
   <div id="cross"></div>
@@ -262,19 +271,20 @@
   <div id="specMsg"></div>
   <button class="specBtn" id="specWalletBtn">◈ Ouvrir le portefeuille</button>
 </div>
-<button id="fireBtn" class="hide">🔥</button>
+<button id="fireBtn" class="hide"><svg viewBox="0 0 64 64" fill="none"><path d="M33 6c5 10 15 14 15 29a16 16 0 0 1-32 0c0-8 4-12 9-17 1 4 1 7-1 10 5-1 7-6 7-10 0-4-1-8 2-12z" stroke="#ffd9a0" stroke-width="3" stroke-linejoin="round"/><path d="M32 33c3 4 5 7 5 10a5 5 0 0 1-10 0c0-3 2-6 5-10z" fill="#ff9d54"/></svg></button>
 
 <div class="overlay" id="ovWelcome">
   <div class="wKick">Bienvenue dans</div>
   <h1 style="font-size:clamp(40px,13vw,100px)">DEVOREUR</h1>
-  <div class="wMoney">💵 DE L'ARGENT RÉEL — PAS DU FAUX</div>
+  <div class="wMoney"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#0a0611" stroke-width="2"/><path d="M12 6.5v11M9.3 9.5h5.4M9.3 14.5h5.4" stroke="#0a0611" stroke-width="1.7" stroke-linecap="round"/></svg> ARGENT RÉEL — PAS DU FAUX</div>
   <div class="wGrid">
-    <div class="wCard"><div class="wIc">🏆</div><div class="wT">Trouvez le trésor</div><div class="wD">Atteignez le Cœur du labyrinthe et repartez avec <b>80 000 CDF</b> et plus.</div></div>
-    <div class="wCard"><div class="wIc">🔥</div><div class="wT">Éliminez vos rivaux</div><div class="wD">Brûlez les autres joueurs avec des boules de feu et <b>gagnez de l'argent</b>.</div></div>
-    <div class="wCard"><div class="wIc">🌍</div><div class="wT">En direct, ensemble</div><div class="wD">Jouez en temps réel avec des joueurs <b>partout en RD Congo</b>.</div></div>
+    <div class="wCard"><div class="wIc"><svg viewBox="0 0 64 64" fill="none"><path d="M19 11h26l9 14-22 30L10 25z" stroke="#b6ff3a" stroke-width="2.6" stroke-linejoin="round"/><path d="M10 25h44M19 11l6 14 7 30 7-30 6-14M25 25l7-14 7 14" stroke="#b06bff" stroke-width="1.5" stroke-linejoin="round" opacity=".8"/></svg></div><div class="wT">Trouvez le trésor</div><div class="wD">Atteignez le Cœur du labyrinthe et repartez avec <b>80 000 CDF</b> et plus.</div></div>
+    <div class="wCard"><div class="wIc"><svg viewBox="0 0 64 64" fill="none"><path d="M33 6c5 10 15 14 15 29a16 16 0 0 1-32 0c0-8 4-12 9-17 1 4 1 7-1 10 5-1 7-6 7-10 0-4-1-8 2-12z" stroke="#b6ff3a" stroke-width="2.6" stroke-linejoin="round"/><path d="M32 33c3 4 5 7 5 10a5 5 0 0 1-10 0c0-3 2-6 5-10z" fill="#b06bff"/></svg></div><div class="wT">Éliminez vos rivaux</div><div class="wD">Brûlez les autres joueurs avec des boules de feu et <b>gagnez de l'argent</b>.</div></div>
+    <div class="wCard"><div class="wIc"><svg viewBox="0 0 64 64" fill="none"><path d="M27 29 17 20M37 29 47 20M27 35 17 44M37 35 47 44" stroke="#b6ff3a" stroke-width="2" opacity=".55"/><circle cx="32" cy="32" r="8" fill="#b6ff3a"/><circle cx="14" cy="17" r="5" stroke="#b06bff" stroke-width="2.4"/><circle cx="50" cy="17" r="5" stroke="#b06bff" stroke-width="2.4"/><circle cx="14" cy="47" r="5" stroke="#b06bff" stroke-width="2.4"/><circle cx="50" cy="47" r="5" stroke="#b06bff" stroke-width="2.4"/></svg></div><div class="wT">En direct, ensemble</div><div class="wD">Jouez en temps réel avec des joueurs <b>partout en RD Congo</b>.</div></div>
   </div>
   <div class="wNote">C'est du <b>vrai argent</b> : vous déposez et retirez de vrais <b>francs congolais (CDF)</b> par mobile money. Ce n'est pas de la monnaie fictive. Réservé aux 18 ans et plus — jouez de manière responsable.</div>
   <button class="btn" id="welcomeBtn">Commencer à jouer</button>
+  <button class="btn ghost" id="welcomeHelpBtn">Voir le tutoriel</button>
 </div>
 
 <div class="overlay" id="ovStart">
@@ -342,9 +352,9 @@
   </div>
 
   <div id="trust">
-    <div class="t"><span class="ic">🏆</span><span class="lb">Cagnotte 80 000+</span></div>
-    <div class="t"><span class="ic">⚡</span><span class="lb">Multijoueur en direct</span></div>
-    <div class="t"><span class="ic">📱</span><span class="lb">Mobile money</span></div>
+    <div class="t"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M7 4h10v4a5 5 0 0 1-10 0z" stroke="#b6ff3a" stroke-width="1.8" stroke-linejoin="round"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4" stroke="#b06bff" stroke-width="1.6"/><path d="M12 13v3M9 20h6M10.5 16h3l.5 4h-4z" stroke="#b6ff3a" stroke-width="1.8" stroke-linejoin="round"/></svg></span><span class="lb">Cagnotte 80 000+</span></div>
+    <div class="t"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2 5 13h5l-1 9 9-13h-6l1-7z" stroke="#b6ff3a" stroke-width="1.8" stroke-linejoin="round" fill="rgba(182,255,58,.15)"/></svg></span><span class="lb">Multijoueur en direct</span></div>
+    <div class="t"><span class="ic"><svg viewBox="0 0 24 24" fill="none"><rect x="7" y="2.5" width="10" height="19" rx="2.5" stroke="#b6ff3a" stroke-width="1.8"/><circle cx="12" cy="11" r="3.4" fill="#b06bff"/><path d="M10.5 18.5h3" stroke="#b6ff3a" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="lb">Mobile money</span></div>
   </div>
 
   <div id="gfx">
@@ -410,34 +420,12 @@
   <h2 style="margin-bottom:8px">Atteignez le Cœur. Gagnez la cagnotte.</h2>
   <div class="helpLead">Tout le monde partage un seul labyrinthe plongé dans le noir. Quelque part bat le <b>Cœur du labyrinthe</b>. Soyez le premier à l'atteindre et vous remportez toute la cagnotte.</div>
   <div class="helpBody">
-    <div class="helpSec">
-      <h3>◈ Le but</h3>
-      <p>Trouvez le Cœur et touchez-le avant tout le monde. Le gagnant remporte la <b>cagnotte</b>, et chaque session garantit au moins <b>80 000 CDF</b> — même si la cagnotte est plus petite, la maison complète la différence.</p>
-    </div>
-    <div class="helpSec">
-      <h3>▸ Se déplacer</h3>
-      <p>Sur ordinateur : <b>ZQSD</b> pour bouger, <b>souris</b> pour regarder, <b>Maj</b> pour courir, <b>E</b> pour lâcher une balise. Sur téléphone : glissez pour regarder et utilisez le joystick à l'écran. Attention — <b>courir et les balises font du bruit</b>, et les chasseurs écoutent.</p>
-    </div>
-    <div class="helpSec">
-      <h3>♥ Vos vies</h3>
-      <p>L'entrée coûte <b>1 000 CDF</b> et vous donne <b>4 vies</b> (affichées en haut de l'écran). Vous pouvez <b>rejoindre à tout moment</b> — le prix ne monte jamais. Chaque fois que vous êtes attrapé, vous perdez une vie et réapparaissez ailleurs. À court de vies : <b>payez 1 000 pour 4 vies de plus</b>, ou restez et observez.</p>
-    </div>
-    <div class="helpSec">
-      <h3>👁 Les chasseurs</h3>
-      <p>Les <b>Dévoreurs de Lumière</b> rôdent dans le labyrinthe, et <b>un nouveau arrive toutes les 5 minutes</b>. Ils vous traquent par le son et la vue — longez les murs, bougez sans cesse, et ne vous laissez pas coincer. Chaque capture coûte une vie.</p>
-    </div>
-    <div class="helpSec">
-      <h3>🔥 Boules de feu</h3>
-      <p>Achetez des boules de feu dans votre <b>portefeuille</b>, puis lancez-les sur vos rivaux. Un coup brûle une de leurs vies et les repousse de leur chemin — et réussir la mise à mort vous rapporte des <b>gains</b>. Servez-vous-en pour arrêter celui qui approche du Cœur.</p>
-    </div>
-    <div class="helpSec">
-      <h3>🏆 Gagner et la cagnotte</h3>
-      <p>La cagnotte grandit à chaque mort et avec les vies non utilisées en fin de session. Atteignez le Cœur et elle est à vous (jamais moins de 80 000). Si <b>personne</b> ne gagne pendant la session d'<b>1 heure</b>, tout le monde rentre et la <b>cagnotte est reportée</b> à la suivante — elle ne cesse de grossir.</p>
-    </div>
-    <div class="helpSec">
-      <h3>💰 Argent réel</h3>
-      <p>Déposez par mobile money sur votre <b>Crédit</b> pour entrer et acheter des boules de feu. Les gains arrivent dans vos <b>Gains</b>, que vous pouvez transférer vers le Crédit pour continuer à jouer ou <b>retirer</b> vers mobile money à tout moment depuis le portefeuille.</p>
-    </div>
+    <div class="helpSec"><div class="tutIll"><svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="22" stroke="#b6ff3a" stroke-width="2.6"/><path d="M32 44c-8-5-12-10-12-15a6 6 0 0 1 12-2 6 6 0 0 1 12 2c0 5-4 10-12 15z" fill="#b06bff"/></svg></div><div class="tutTxt"><h3>1 · Payez, prenez 4 vies</h3><p>L'entrée est un montant fixe de <b>1 000 CDF</b> et vous donne <b>4 vies</b>. Rejoignez à tout moment — le prix ne monte jamais.</p></div></div>
+    <div class="helpSec"><div class="tutIll"><svg viewBox="0 0 64 64" fill="none"><rect x="9" y="9" width="46" height="46" rx="5" stroke="#b6ff3a" stroke-width="2.6"/><path d="M9 23h22v10H21v12M55 9v22H33M55 31v14H33M21 9v6" stroke="#b06bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="25" cy="47" r="3.4" fill="#b6ff3a"/></svg></div><div class="tutTxt"><h3>2 · Explorez le labyrinthe</h3><p>Sur ordinateur : <b>ZQSD</b> pour bouger, la <b>souris</b> pour regarder, <b>Maj</b> pour courir. Sur téléphone : glissez pour regarder et utilisez le joystick. Courir fait du <b>bruit</b>.</p></div></div>
+    <div class="helpSec"><div class="tutIll"><svg viewBox="0 0 64 64" fill="none"><path d="M7 32c9-13 41-13 50 0-9 13-41 13-50 0z" stroke="#b6ff3a" stroke-width="2.6" stroke-linejoin="round"/><circle cx="32" cy="32" r="8.5" stroke="#b6ff3a" stroke-width="2.6"/><circle cx="32" cy="32" r="3.6" fill="#b06bff"/></svg></div><div class="tutTxt"><h3>3 · Fuyez les Dévoreurs</h3><p>Les <b>Dévoreurs de Lumière</b> vous traquent par le son et la vue, et <b>un nouveau arrive toutes les 5 min</b>. Chaque capture vous coûte une vie.</p></div></div>
+    <div class="helpSec"><div class="tutIll"><svg viewBox="0 0 64 64" fill="none"><path d="M33 6c5 10 15 14 15 29a16 16 0 0 1-32 0c0-8 4-12 9-17 1 4 1 7-1 10 5-1 7-6 7-10 0-4-1-8 2-12z" stroke="#b6ff3a" stroke-width="2.6" stroke-linejoin="round"/><path d="M32 33c3 4 5 7 5 10a5 5 0 0 1-10 0c0-3 2-6 5-10z" fill="#b06bff"/></svg></div><div class="tutTxt"><h3>4 · Lancez des boules de feu</h3><p>Achetez-en dans le <b>portefeuille</b> et brûlez vos rivaux : un coup leur coûte une vie et réussir la mise à mort vous <b>rapporte des gains</b>.</p></div></div>
+    <div class="helpSec"><div class="tutIll"><svg viewBox="0 0 64 64" fill="none"><path d="M20 11h24v11a12 12 0 0 1-24 0z" stroke="#b6ff3a" stroke-width="2.6" stroke-linejoin="round"/><path d="M20 15h-7a7 7 0 0 0 7 9M44 15h7a7 7 0 0 1-7 9" stroke="#b06bff" stroke-width="2.2" stroke-linejoin="round"/><path d="M32 34v7M23 53h18M28 41h8l1.5 12h-11z" stroke="#b6ff3a" stroke-width="2.6" stroke-linejoin="round"/></svg></div><div class="tutTxt"><h3>5 · Atteignez le Cœur</h3><p>Le premier à toucher le Cœur remporte la cagnotte — <b>jamais moins de 80 000 CDF</b>. Session d'<b>1 heure</b> : sans gagnant, la cagnotte est <b>reportée</b> et grossit.</p></div></div>
+    <div class="helpSec"><div class="tutIll"><svg viewBox="0 0 64 64" fill="none"><rect x="19" y="7" width="26" height="50" rx="5" stroke="#b6ff3a" stroke-width="2.6"/><path d="M28 50h8" stroke="#b6ff3a" stroke-width="2.4" stroke-linecap="round"/><circle cx="32" cy="29" r="9" fill="#b06bff"/><path d="M32 24v10M28.5 27h7M28.5 31h7" stroke="#0a0611" stroke-width="1.7" stroke-linecap="round"/></svg></div><div class="tutTxt"><h3>6 · Déposez &amp; retirez</h3><p>Alimentez votre <b>Crédit</b> par mobile money pour entrer et acheter des boules de feu. Vos <b>Gains</b> se retirent en vrais <b>CDF</b> à tout moment.</p></div></div>
   </div>
   <button class="btn" id="helpClose">C'est compris — je joue</button>
 </div>

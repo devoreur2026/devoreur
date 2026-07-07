@@ -1,0 +1,33 @@
+<svg width="512" height="512" viewBox="0 0 512 512" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>Devoreur — the Eater (primary icon)</title>
+<desc>The Darkness Eater: a hooded figure with ember eyes and a tattered cloak on a dark disc.</desc>
+<rect width="512" height="512" fill="#08080d"/>
+<circle cx="256" cy="256" r="200" fill="#0d0b16"/>
+<circle cx="256" cy="256" r="200" fill="none" stroke="#241a33" stroke-width="1.6"/>
+<circle cx="256" cy="256" r="184" fill="none" stroke="#1a1428" stroke-width="0.8"/>
+<path d="M 256 92
+ C 346 92 394 166 394 256
+ C 394 308 376 344 368 388
+ L 353 375 L 342 401 L 328 377 L 314 405 L 300 379 L 286 407 L 271 381 L 256 411
+ L 241 381 L 226 407 L 212 379 L 198 405 L 184 377 L 170 401 L 159 375 L 144 388
+ C 136 344 118 308 118 256
+ C 118 166 166 92 256 92 Z" fill="#15121f"/>
+<path d="M 256 108
+ C 338 108 378 172 378 256
+ C 378 296 366 326 358 360
+ L 256 343 L 154 360
+ C 146 326 134 296 134 256
+ C 134 172 174 108 256 108 Z" fill="#221d33"/>
+<ellipse cx="256" cy="226" rx="75" ry="92" fill="#0b0912"/>
+<circle cx="226" cy="216" r="15" fill="#ff4d1a"/>
+<circle cx="226" cy="216" r="7" fill="#ffe08a"/>
+<circle cx="286" cy="216" r="15" fill="#ff4d1a"/>
+<circle cx="286" cy="216" r="7" fill="#ffe08a"/>
+<path d="M 226 216 L 219 306" stroke="#ff4d1a" stroke-width="2.6" opacity="0.3" stroke-linecap="round"/>
+<path d="M 286 216 L 293 306" stroke="#ff4d1a" stroke-width="2.6" opacity="0.3" stroke-linecap="round"/>
+<circle cx="202" cy="150" r="2.6" fill="#8a6bff" opacity="0.6"/>
+<circle cx="318" cy="172" r="2.2" fill="#8a6bff" opacity="0.5"/>
+<circle cx="162" cy="240" r="2.2" fill="#8a6bff" opacity="0.45"/>
+<circle cx="352" cy="278" r="2.6" fill="#8a6bff" opacity="0.5"/>
+<circle cx="182" cy="330" r="1.8" fill="#8a6bff" opacity="0.4"/>
+</svg>
