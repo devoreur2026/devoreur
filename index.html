@@ -77,6 +77,18 @@
   .overlay>:first-child{margin-top:auto}
   .overlay>:last-child{margin-bottom:auto}
   .overlay.hide{display:none}
+  /* how-to-play */
+  .helpBody{max-width:540px;text-align:left;margin:8px 0 6px}
+  .helpSec{margin:15px 0}
+  .helpSec h3{font-size:13px;letter-spacing:.16em;color:var(--gold);margin:0 0 5px;font-weight:600;text-transform:uppercase}
+  .helpSec p{font-size:14px;line-height:1.7;color:#d8d2c2;margin:0}
+  .helpSec p b{color:#f6efdd;font-weight:600}
+  .helpLead{max-width:540px;color:#b9b3a3;font-size:13px;line-height:1.6;margin:2px 0 4px}
+  #helpLink{color:var(--gold);cursor:pointer;white-space:nowrap}
+  @media (max-width:640px), (pointer:coarse){
+    .helpSec p{font-size:13px}
+    .helpSec h3{font-size:12px}
+  }
   .eyebrow{font-size:11px;letter-spacing:.5em;text-transform:uppercase;color:var(--violet);margin-bottom:18px}
   h1{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(52px,10vw,104px);
     letter-spacing:.14em;text-indent:.14em;line-height:1;
@@ -300,6 +312,7 @@
       <div id="joinInfo" class="auth-note" style="color:var(--gold);min-height:1.4em"></div>
       <button class="btn" id="playBtn">Enter the maze</button>
       <button class="btn" id="walletBtn">Wallet · deposit / cash out</button>
+      <button class="btn" id="helpBtn">How to play</button>
       <div class="auth-links"><span class="auth-link" id="signoutLink">Sign out</span></div>
     </div>
   </div>
@@ -309,7 +322,7 @@
     <button class="gfxbtn" id="gfxLow">Low</button>
     <button class="gfxbtn" id="gfxHigh">High</button>
   </div>
-  <div class="fine"><b>live multiplayer</b> — everyone shares one maze · first to the Heart wins</div>
+  <div class="fine"><b>live multiplayer</b> — everyone shares one maze · first to the Heart wins · <span id="helpLink">How to play</span></div>
 </div>
 
 <div class="overlay hide" id="ovDeath">
@@ -360,6 +373,43 @@
 
   <div class="walletHistory" id="walletHistory"></div>
   <button class="btn" id="walletClose">Close</button>
+</div>
+
+<div class="overlay hide" id="ovHelp">
+  <div class="eyebrow" style="color:var(--gold)">How to play</div>
+  <h2 style="margin-bottom:8px">Reach the Heart. Win the pot.</h2>
+  <div class="helpLead">Everyone shares one pitch-black maze. Somewhere in it beats the <b>Heart of the Maze</b>. Be the first to reach it and you take the whole pot.</div>
+  <div class="helpBody">
+    <div class="helpSec">
+      <h3>◈ The goal</h3>
+      <p>Find the Heart and touch it before anyone else. The winner claims the <b>pot</b>, and every session is guaranteed to pay at least <b>15,000 CDF</b> — even if the pot is smaller, the house tops it up.</p>
+    </div>
+    <div class="helpSec">
+      <h3>▸ Getting around</h3>
+      <p>On a computer: <b>WASD</b> to move, <b>mouse</b> to look, <b>Shift</b> to sprint, <b>E</b> to drop a beacon. On a phone: drag to look and use the on-screen stick. Careful — <b>sprinting and beacons make you loud</b>, and the hunters listen.</p>
+    </div>
+    <div class="helpSec">
+      <h3>♥ Your lives</h3>
+      <p>Entry is a flat <b>1,000 CDF</b> and gives you <b>4 lives</b> (shown at the top of the screen). You can <b>join at any time</b> — the price never rises. Every time you're caught you lose one life and respawn somewhere new. Run out and you're out of the hunt: <b>pay 1,000 for 4 more lives</b>, or stay and watch.</p>
+    </div>
+    <div class="helpSec">
+      <h3>👁 The hunters</h3>
+      <p><b>Darkness Eaters</b> prowl the maze, and <b>a new one joins every 5 minutes</b>. They track you by sound and sight — hug the walls, keep moving, and don't get cornered. Each time one catches you, it costs a life.</p>
+    </div>
+    <div class="helpSec">
+      <h3>🔥 Fireballs</h3>
+      <p>Buy fireballs in your <b>wallet</b>, then throw them at rivals. A hit burns one of their lives and knocks them off their path — and getting the kill pays <b>you</b> in Earnings. Use them to stop whoever's closing in on the Heart.</p>
+    </div>
+    <div class="helpSec">
+      <h3>🏆 Winning &amp; the pot</h3>
+      <p>The pot grows from every death and from unused lives when a session ends. Reach the Heart and it's yours (never less than 15,000). If <b>nobody</b> wins within the <b>1-hour</b> session, everyone is sent home and the <b>pot carries over</b> to the next one — so it just keeps building.</p>
+    </div>
+    <div class="helpSec">
+      <h3>💰 Real money</h3>
+      <p>Deposit by mobile money into your <b>Credit</b> to enter and buy fireballs. Winnings arrive as <b>Earnings</b>, which you can move to Credit to keep playing or <b>cash out</b> to mobile money any time from the wallet.</p>
+    </div>
+  </div>
+  <button class="btn" id="helpClose">Got it — let me play</button>
 </div>
 
 <canvas id="mapCanvas" class="hide"></canvas>
