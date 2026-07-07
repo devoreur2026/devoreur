@@ -22,7 +22,7 @@ function persist(){ try { session ? localStorage.setItem(STORE, JSON.stringify(s
 
 function userFrom(u){
   var meta = (u && u.user_metadata) || {};
-  return { id: u && u.id, email: u && u.email, name: (meta.display_name || meta.name || (u && u.email || '').split('@')[0] || 'Player') };
+  return { id: u && u.id, email: u && u.email, name: (meta.display_name || meta.name || meta.full_name || (u && u.email || '').split('@')[0] || 'Player') };
 }
 function setSession(data){
   var now = Math.floor(Date.now() / 1000);
@@ -91,6 +91,7 @@ async function refresh(){
 export var auth = {
   configured: false,
   configError: null,
+  oauthError: null,
 
   async init(){
     try {
@@ -102,6 +103,7 @@ export var auth = {
       this.configError = 'Impossible de joindre le serveur.';
     }
     if (!this.configured) return;
+    await this._completeOAuth();          // finish a Google redirect if we came back with tokens
     session = load();
     if (session){
       // keep us signed in across reloads (~30 days, governed by Supabase)
@@ -126,6 +128,31 @@ export var auth = {
     var r = await api('/token?grant_type=password', { body: { email: email, password: password } });
     if (r.ok) setSession(r.data);
     return r;
+  },
+  // OAuth (Google, etc.): full-page redirect to Supabase's provider flow, which
+  // sends us back to the app with the session tokens in the URL fragment.
+  oauth(provider){
+    if (!cfg) return;
+    var redirect = window.location.origin + window.location.pathname;
+    window.location.href = cfg.url + '/auth/v1/authorize?provider=' + encodeURIComponent(provider) +
+      '&redirect_to=' + encodeURIComponent(redirect);
+  },
+  async _completeOAuth(){
+    var hash = window.location.hash || '';
+    if (hash.indexOf('access_token=') < 0 && hash.indexOf('error=') < 0) return;
+    var p = new URLSearchParams(hash.replace(/^#/, ''));
+    try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch (e) {}   // strip tokens from the URL
+    if (p.get('error')){
+      var d = (p.get('error_description') || '').toLowerCase();
+      this.oauthError = (p.get('error') === 'access_denied' || d.indexOf('cancel') >= 0)
+        ? 'Connexion Google annulée.' : 'Connexion Google impossible — réessayez.';
+      return;
+    }
+    var at = p.get('access_token');
+    if (!at) return;
+    var u = await api('/user', { method: 'GET', token: at });   // fetch the profile to build the session
+    if (!u.ok){ this.oauthError = 'Connexion Google impossible — réessayez.'; return; }
+    setSession({ access_token: at, refresh_token: p.get('refresh_token'), expires_in: parseInt(p.get('expires_in'), 10) || 3600, user: u.data });
   },
   async forgot(email){ return await api('/recover', { body: { email: email } }); },
   async resetPassword(email, code, newPassword){

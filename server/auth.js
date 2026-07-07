@@ -30,14 +30,14 @@ export function AuthError(msg){ this.name = 'AuthError'; this.message = msg; }
 AuthError.prototype = Object.create(Error.prototype);
 
 function nameFrom(meta, email){
-  var n = (meta && (meta.display_name || meta.name)) || (email || '').split('@')[0] || 'Player';
+  var n = (meta && (meta.display_name || meta.name || meta.full_name)) || (email || '').split('@')[0] || 'Player';
   return ('' + n).slice(0, 16).trim() || 'Player';
 }
 
 // Resolve a token to { sub, email, name } or throw AuthError.
 export async function verifyToken(token){
-  if (!authConfigured()) throw new AuthError('Accounts are not available right now.');
-  if (!token || typeof token !== 'string') throw new AuthError('Please sign in to play.');
+  if (!authConfigured()) throw new AuthError('Comptes indisponibles pour le moment.');
+  if (!token || typeof token !== 'string') throw new AuthError('Connectez-vous pour jouer.');
 
   // Primary: local JWKS verification (fast, offline after first fetch).
   try {
@@ -60,10 +60,10 @@ async function verifyViaApi(token){
       headers: { apikey: SUPABASE_PUBLISHABLE_KEY, Authorization: 'Bearer ' + token }
     });
   } catch (e) {
-    throw new AuthError('Could not reach the auth server. Try again.');
+    throw new AuthError("Impossible de joindre le serveur d'authentification. Réessayez.");
   }
-  if (!res.ok) throw new AuthError('Your session is invalid or expired — sign in again.');
+  if (!res.ok) throw new AuthError('Votre session est invalide ou expirée — reconnectez-vous.');
   var u = await res.json();
-  if (!u || (!u.email_confirmed_at && !u.confirmed_at)) throw new AuthError('Verify your email before playing.');
+  if (!u || (!u.email_confirmed_at && !u.confirmed_at)) throw new AuthError('Vérifiez votre e-mail avant de jouer.');
   return { sub: u.id, email: u.email, name: nameFrom(u.user_metadata, u.email) };
 }

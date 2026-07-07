@@ -188,6 +188,11 @@ function startPlay(){
 el('playBtn').onclick = startPlay;
 el('signoutLink').onclick = function(){ clearEnterTimer(); auth.signOut(); show('signin'); };
 
+/* ---------- Google sign-in / sign-up (same OAuth flow) ---------- */
+function doGoogle(){ clearErr(); auth.oauth('google'); }
+el('googleBtn').onclick = doGoogle;
+var gsu = el('googleBtnSignup'); if (gsu) gsu.onclick = doGoogle;
+
 // we actually entered (game.js's 'round' handler ran) -> cancel the timeout
 net.on('round', function(){ clearEnterTimer(); });
 
@@ -235,5 +240,6 @@ resendLinks = [el('otpResend'), el('rsResend')];
   for (var k in panels) panels[k].classList.add('hide');   // avoid flashing the wrong panel
   await auth.init();
   if (!auth.configured){ showErr(auth.configError || 'Accounts are unavailable right now.'); return; }
-  if (auth.user()) showReady(); else show('signin');
+  if (auth.user()) showReady();
+  else { show('signin'); if (auth.oauthError) showErr(auth.oauthError); }
 })();
