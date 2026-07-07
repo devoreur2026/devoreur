@@ -142,5 +142,5 @@ export function initPaymentsUi(){
   el('payProvider').addEventListener('change', updateHint);
   el('payBtn').addEventListener('click', submit);
   // the wallet panel dispatches this when opened
-  document.addEventListener('umbra-wallet-open', function(){ refreshPayments(); });
+  document.addEventListener('devoreur-wallet-open', function(){ refreshPayments(); });
 }

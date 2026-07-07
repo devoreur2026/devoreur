@@ -129,7 +129,7 @@ function openWallet(standalone){
   if (document.exitPointerLock) document.exitPointerLock();
   walletMsg('');
   loadWalletHttp();                           // balances + history over HTTP — works in-game AND from home
-  document.dispatchEvent(new Event('umbra-wallet-open'));  // let the payments UI refresh
+  document.dispatchEvent(new Event('devoreur-wallet-open'));  // let the payments UI refresh
 }
 function closeWallet(){ state.uiBusy = false; el('ovWallet').classList.add('hide'); }
 el('coinBtn').addEventListener('click', function(){ el('ovWallet').classList.contains('hide') ? openWallet(false) : closeWallet(); });

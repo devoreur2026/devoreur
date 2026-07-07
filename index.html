@@ -4,7 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0a0611">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a0611'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%23b6ff3a' stroke-width='2.2'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23b06bff'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Devoreur — the maze that eats light">
+<meta property="og:description" content="Hunt the treasure. Evade the Eaters. Burn your rivals. Real stakes.">
+<meta property="og:image" content="https://devoreur.com/og-image.png">
+<meta property="og:url" content="https://devoreur.com">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Devoreur — the maze that eats light">
+<meta name="twitter:description" content="Hunt the treasure. Evade the Eaters. Burn your rivals. Real stakes.">
+<meta name="twitter:image" content="https://devoreur.com/og-image.png">
 <title>Devoreur — le labyrinthe qui dévore la lumière</title>
 <style>
   :root{
@@ -87,6 +96,8 @@
     background:linear-gradient(115deg,var(--lime) 8%,#7fe7ff 42%,var(--purple) 92%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
     filter:drop-shadow(0 0 44px rgba(176,107,255,.45))}
   .sub{font-size:clamp(12px,3.4vw,16px);color:var(--dim);margin-top:14px;letter-spacing:.14em}
+  .titleLockup{width:clamp(230px,58vw,420px);height:auto;display:block;margin:0 auto 4px}
+  .brandLogo{width:clamp(150px,44vw,210px);height:auto;display:block;margin:0 auto 12px;opacity:.96}
   h2{font-weight:800;font-size:clamp(28px,7vw,52px);letter-spacing:.01em;line-height:1.12}
   #ovDeath h2{color:var(--danger);text-shadow:0 0 40px rgba(255,79,116,.4)}
   #ovWin h2{background:linear-gradient(120deg,var(--lime),var(--purple));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 44px rgba(182,255,58,.35))}
@@ -314,9 +325,35 @@
 </div>
 
 <div class="overlay" id="ovStart">
-  <div class="eyebrow">Une chasse au trésor dans le noir</div>
-  <h1>DEVOREUR</h1>
-  <div class="sub">le labyrinthe qui dévore la lumière</div>
+  <svg class="titleLockup" viewBox="0 0 680 560" xmlns="http://www.w3.org/2000/svg">
+<path d="M 340 70
+ C 408 70 444 126 444 194
+ C 444 234 430 262 423 296
+ L 411 286 L 402 306 L 391 288 L 380 308 L 369 290 L 358 310 L 346 292 L 340 314
+ L 334 292 L 322 310 L 311 290 L 300 308 L 289 288 L 278 306 L 269 286 L 257 296
+ C 250 262 236 234 236 194
+ C 236 126 272 70 340 70 Z" fill="#15121f"/>
+<path d="M 340 84
+ C 402 84 432 134 432 194
+ C 432 226 424 250 417 278
+ L 340 264 L 263 278
+ C 256 250 248 226 248 194
+ C 248 134 278 84 340 84 Z" fill="#221d33"/>
+<ellipse cx="340" cy="170" rx="58" ry="70" fill="#0b0912"/>
+<circle cx="317" cy="162" r="11.5" fill="#ff4d1a"/>
+<circle cx="317" cy="162" r="5.5" fill="#ffe08a"/>
+<circle cx="363" cy="162" r="11.5" fill="#ff4d1a"/>
+<circle cx="363" cy="162" r="5.5" fill="#ffe08a"/>
+<path d="M 317 162 L 312 232" stroke="#ff4d1a" stroke-width="2" opacity="0.3" stroke-linecap="round"/>
+<path d="M 363 162 L 368 232" stroke="#ff4d1a" stroke-width="2" opacity="0.3" stroke-linecap="round"/>
+<circle cx="288" cy="110" r="2" fill="#8a6bff" opacity="0.55"/>
+<circle cx="395" cy="130" r="1.5" fill="#8a6bff" opacity="0.5"/>
+<circle cx="255" cy="185" r="1.5" fill="#8a6bff" opacity="0.4"/>
+<text x="340" y="430" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="76" fill="#f2ead6" letter-spacing="13">DEVOREUR</text>
+<line x1="230" y1="458" x2="450" y2="458" stroke="#3a3450" stroke-width="1"/>
+<text x="340" y="492" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="19" fill="#8a7d5f" letter-spacing="3">the maze that eats light</text>
+<text x="340" y="528" text-anchor="middle" font-family="Georgia, serif" font-size="13" fill="#5a5468" letter-spacing="6">TREASURE HUNT IN THE DARK</text>
+</svg>
 
   <div id="authBox">
     <div id="authErr" class="auth-err hide"></div>
@@ -408,7 +445,7 @@
 </div>
 
 <div class="overlay hide" id="ovWallet">
-  <div class="eyebrow">Votre portefeuille</div>
+  <img class="brandLogo" src="/brand/logo-horizontal.svg" alt="Devoreur" width="520" height="120">
   <div class="walletBalances">
     <div>Crédit<b id="pwCredit">0</b></div>
     <div>Gains<b id="pwEarn">0</b></div>

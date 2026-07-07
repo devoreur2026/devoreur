@@ -1,4 +1,4 @@
-// UMBRA server: serves the static client and hosts the authoritative
+// Devoreur server: serves the static client and hosts the authoritative
 // multiplayer over WebSockets. One process, one command (`npm start`).
 import './env.js';   // must be first: loads .env before auth.js reads SUPABASE_*
 import http from 'http';

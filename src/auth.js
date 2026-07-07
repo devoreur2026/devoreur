@@ -3,12 +3,21 @@
 // resend, password reset via OTP, session persistence + auto-refresh, and maps
 // Supabase errors to human messages. Config (project URL + publishable anon key)
 // comes from the server's /api/config so nothing is hard-coded.
-var STORE = 'umbra.session';
+var STORE = 'devoreur.session';
 var cfg = null;                 // { url, key }
 var session = null;             // { access_token, refresh_token, expires_at, user:{id,email,name} }
 var refreshTimer = null;
 
-function load(){ try { return JSON.parse(localStorage.getItem(STORE) || 'null'); } catch (e) { return null; } }
+function load(){
+  try {
+    var v = localStorage.getItem(STORE);
+    if (v == null){                                   // one-time migration from the retired key
+      var old = localStorage.getItem('umbra.session');
+      if (old != null){ localStorage.setItem(STORE, old); localStorage.removeItem('umbra.session'); v = old; }
+    }
+    return JSON.parse(v || 'null');
+  } catch (e) { return null; }
+}
 function persist(){ try { session ? localStorage.setItem(STORE, JSON.stringify(session)) : localStorage.removeItem(STORE); } catch (e) {} }
 
 function userFrom(u){

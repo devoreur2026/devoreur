@@ -20,7 +20,7 @@ import { initPaymentsUi } from './paymentsui.js';   // deposit / withdraw (real 
 
 initPaymentsUi();
 
-window.UMBRA = { net, player, state };   // dev handle for debugging/inspection
+window.Devoreur = { net, player, state };   // dev handle for debugging/inspection
 
 var clock = new THREE.Clock(), t = 0, lastSend = 0, lastRev = 0;
 var SEND_HZ = 30;                                  // batch fixed-step inputs into ~30 packets/s
