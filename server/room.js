@@ -144,6 +144,8 @@ export class Room {
     var prevRound = this.roundId;
     this.roundId = this.name + '#' + this.uid + '.' + (++this.roundCounter);   // unique across restarts
     this.rolledIn = prevRound ? this.bank.rollover(prevRound, this.roundId) : 0;   // carry an unclaimed pot
+    var live = new Set(); for (var lp of this.players.values()) live.add(lp.account);
+    this.bank.sweepOrphans(this.roundId, live);      // absorb anything stranded by a restart into this pot
 
     this.broadcast(this.roundMsg());                 // maze first, then charge + spawn
     this.paidCount = 0;

@@ -83,6 +83,49 @@ export class Bank {
     return { ok: true, forfeited: s, toHouse: f.house, toPot: f.pot };
   }
 
+  // Safety net against a server restart abandoning an in-flight round (its
+  // in-memory state is lost, so endRound never runs). At the start of every round
+  // we absorb any money stranded in dead rounds INTO the live round, so no entry
+  // is ever lost: orphaned STAKE forfeits 50/50 house/pot; a dead round's leftover
+  // POT rolls in whole. A healthy ledger has none of these, so this is usually a
+  // no-op. Every posting nets to zero, so audits/integrity are preserved.
+  sweepOrphans(roundId, keep){
+    keep = keep || new Set();          // accounts currently in the room — their stake is live, don't sweep it
+    var here = POT(roundId), stakeAccts = [], deadPots = [];
+    for (var [k, v] of this.ledger.bal){
+      if (v <= 0) continue;
+      var sep = k.lastIndexOf('|'), acc = k.slice(0, sep), bucket = k.slice(sep + 1);
+      if (bucket === STAKE && !keep.has(acc)) stakeAccts.push(acc);
+      else if (bucket === CREDIT && acc.indexOf('pot:') === 0 && acc !== here) deadPots.push(acc);
+    }
+    var swept = 0;
+    for (var i = 0; i < stakeAccts.length; i++){
+      var a = stakeAccts[i], sIdem = 'sweep:' + roundId + ':' + a;
+      if (this.ledger.has(sIdem)) continue;
+      var s = this.stakeBalance(a);
+      if (s <= 0) continue;
+      var f = splitForfeit(s);
+      this.ledger.post(sIdem, [
+        { account: a, bucket: STAKE, amount: -s, type: 'sweep_stake' },
+        { account: HOUSE, bucket: CREDIT, amount: f.house, type: 'sweep_house' },
+        { account: here, bucket: CREDIT, amount: f.pot, type: 'sweep_pot' }
+      ], this._meta({ round: roundId, counterparty: here }));
+      swept += s;
+    }
+    for (var j = 0; j < deadPots.length; j++){
+      var pAcc = deadPots[j], pIdem = 'sweeppot:' + roundId + ':' + pAcc;
+      if (this.ledger.has(pIdem)) continue;
+      var pv = this.ledger.balance(pAcc, CREDIT);
+      if (pv <= 0) continue;
+      this.ledger.post(pIdem, [
+        { account: pAcc, bucket: CREDIT, amount: -pv, type: 'sweep_deadpot' },
+        { account: here, bucket: CREDIT, amount: pv, type: 'sweep_potin' }
+      ], this._meta({ round: roundId, counterparty: here }));
+      swept += pv;
+    }
+    return swept;
+  }
+
   // Roll an unclaimed pot into the next round (no house cut). Both legs are
   // tagged to the NEW round so both rounds' audits still net to zero:
   //   old round: entries/kills already summed to 0 (rollover isn't tagged to it)

@@ -23,8 +23,9 @@ console.log('— round ids differ across a "restart"; the reused round still fun
   var b = new Room('room-1', bank); clearInterval(b.timer);
   ok(b.roundId !== idA, 'round id differs across restart (no collision): ' + idA + ' vs ' + b.roundId);
 
+  // creating room b already swept P's round-A stake (orphan recovery); b now charges fresh
   b.addPlayer('P', 'P', mkws());             // different round id -> NOT idempotent -> charges again
-  eq(bank.stakeBalance('P'), 2000, 'round B entry also charged — NOT idempotent-skipped as a duplicate');
+  eq(bank.stakeBalance('P'), 1000, 'round B charged a fresh stake — the entry was NOT idempotent-skipped');
   ok(b.potBalance() >= 0, 'pot is never negative');
   ok(bank.ledger.verifyIntegrity(), 'ledger integrity holds');
 }
