@@ -228,6 +228,32 @@
   .wNote{margin-top:14px;max-width:540px;font-size:clamp(11px,3vw,12.5px);color:var(--dim);line-height:1.65}
   .wNote b{color:var(--ink)}
 
+  /* ---------------- first-run controls coach ---------------- */
+  #ovCoach{z-index:11;background:radial-gradient(ellipse 100% 60% at 50% 0%, rgba(50,22,90,.66), rgba(6,4,12,.86) 76%);backdrop-filter:blur(7px)}
+  .coachRow{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin:20px 0 6px}
+  .coachCard{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px 26px;min-width:190px;display:flex;flex-direction:column;align-items:center;gap:12px}
+  .coachT{font-size:clamp(14px,3.6vw,16px);font-weight:700;color:var(--purple-l);letter-spacing:.04em}
+  .coachD{font-size:clamp(12px,3.2vw,13.5px);color:#cfc9df;line-height:1.55;max-width:360px}
+  .coachD b{color:var(--lime)}
+  .coachExtra{margin-top:14px;font-size:clamp(11px,3vw,12.5px);color:var(--dim);letter-spacing:.03em;max-width:420px;line-height:1.6}
+  .coachExtra b{color:var(--ink)}
+  .keypad{display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:44px 44px;gap:7px}
+  .key{display:flex;align-items:center;justify-content:center;border-radius:11px;background:var(--panel2);border:1px solid var(--line);color:var(--dim);font-size:21px;font-weight:700;animation:keypress 3.4s infinite}
+  .key.up{grid-column:2;grid-row:1}.key.left{grid-column:1;grid-row:2}.key.down{grid-column:2;grid-row:2}.key.right{grid-column:3;grid-row:2}
+  .key.up{animation-delay:0s}.key.down{animation-delay:.85s}.key.left{animation-delay:1.7s}.key.right{animation-delay:2.55s}
+  @keyframes keypress{0%,9%,100%{background:var(--panel2);color:var(--dim);transform:translateY(0);box-shadow:none}3%{background:var(--lime);color:#0a0611;transform:translateY(2px);box-shadow:0 0 18px rgba(182,255,58,.6)}}
+  .mouseSvg{width:44px;height:64px;animation:mousewiggle 2.4s ease-in-out infinite;transform-origin:50% 42%}
+  @keyframes mousewiggle{0%,100%{transform:rotate(-11deg)}50%{transform:rotate(11deg)}}
+  .phoneDiag{width:min(300px,82vw);height:158px;border:2px solid var(--line);border-radius:20px;display:flex;overflow:hidden;position:relative;background:rgba(10,6,18,.55);margin:8px auto 4px}
+  .phoneDiag .pd-half{flex:1;position:relative;display:flex;align-items:flex-end;justify-content:center;padding-bottom:12px}
+  .phoneDiag .pd-left{border-right:1px dashed rgba(176,107,255,.4)}
+  .pd-lbl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--purple-l);z-index:1}
+  .pd-finger{position:absolute;top:50%;left:50%;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;background:radial-gradient(circle at 40% 34%,rgba(182,255,58,.95),rgba(182,255,58,.22));box-shadow:0 0 18px rgba(182,255,58,.55)}
+  .pd-left .pd-finger{animation:dragv 1.8s ease-in-out infinite}
+  .pd-right .pd-finger{animation:dragh 1.8s ease-in-out infinite}
+  @keyframes dragv{0%,100%{transform:translateY(18px);opacity:.35}50%{transform:translateY(-20px);opacity:1}}
+  @keyframes dragh{0%,100%{transform:translateX(-22px);opacity:.35}50%{transform:translateX(22px);opacity:1}}
+
   /* ---------------- phones ---------------- */
   @media (max-width:640px), (pointer:coarse){
     #hunters{display:none}
@@ -428,6 +454,34 @@
     <div class="helpSec"><div class="tutIll"><svg viewBox="0 0 64 64" fill="none"><rect x="19" y="7" width="26" height="50" rx="5" stroke="#b6ff3a" stroke-width="2.6"/><path d="M28 50h8" stroke="#b6ff3a" stroke-width="2.4" stroke-linecap="round"/><circle cx="32" cy="29" r="9" fill="#b06bff"/><path d="M32 24v10M28.5 27h7M28.5 31h7" stroke="#0a0611" stroke-width="1.7" stroke-linecap="round"/></svg></div><div class="tutTxt"><h3>6 · Déposez &amp; retirez</h3><p>Alimentez votre <b>Crédit</b> par mobile money pour entrer et acheter des boules de feu. Vos <b>Gains</b> se retirent en vrais <b>CDF</b> à tout moment.</p></div></div>
   </div>
   <button class="btn" id="helpClose">C'est compris — je joue</button>
+</div>
+
+<div class="overlay hide" id="ovCoach">
+  <div class="eyebrow">Prise en main</div>
+  <h2 style="font-size:clamp(24px,6.5vw,44px)">Comment se déplacer</h2>
+  <div id="coachDesk" class="hide">
+    <div class="coachRow">
+      <div class="coachCard">
+        <div class="keypad"><div class="key up">↑</div><div class="key left">←</div><div class="key down">↓</div><div class="key right">→</div></div>
+        <div class="coachT">Se déplacer</div>
+        <div class="coachD">Les <b>flèches</b> ou <b>Z Q S D</b></div>
+      </div>
+      <div class="coachCard">
+        <svg class="mouseSvg" viewBox="0 0 44 64" fill="none"><rect x="7" y="4" width="30" height="56" rx="15" stroke="#b6ff3a" stroke-width="2.6"/><path d="M22 5v18" stroke="#b06bff" stroke-width="2.2"/><rect x="19" y="12" width="6" height="11" rx="3" fill="#b06bff"/></svg>
+        <div class="coachT">Regarder autour</div>
+        <div class="coachD">Bougez la <b>souris</b></div>
+      </div>
+    </div>
+  </div>
+  <div id="coachMob" class="hide">
+    <div class="phoneDiag">
+      <div class="pd-half pd-left"><div class="pd-finger"></div><div class="pd-lbl">Déplacer</div></div>
+      <div class="pd-half pd-right"><div class="pd-finger"></div><div class="pd-lbl">Regarder</div></div>
+    </div>
+    <div class="coachD">Glissez sur la <b>moitié gauche</b> de l'écran pour vous déplacer · la <b>moitié droite</b> pour regarder autour.</div>
+  </div>
+  <div class="coachExtra"><b>Maj</b> pour courir · <b>clic / bouton feu</b> pour lancer une boule de feu · atteignez le <b>Cœur</b> pour gagner.</div>
+  <button class="btn" id="coachBtn">Prêt !</button>
 </div>
 
 <canvas id="mapCanvas" class="hide"></canvas>

@@ -49,6 +49,32 @@ gfxLow.addEventListener('click', function(){ setQuality('low'); });
 gfxHigh.addEventListener('click', function(){ setQuality('high'); });
 setQuality(isMobile ? 'low' : 'high');
 
+/* ---- first-run controls coach: once per device, shows how to move/look ---- */
+var COACH_KEY = 'devoreur.coached';
+function showCoachIfFirstTime(){
+  try { if (localStorage.getItem(COACH_KEY)) return false; } catch (e) { return false; }
+  var ov = document.getElementById('ovCoach');
+  if (!ov) return false;
+  document.getElementById('coachMob').classList.toggle('hide', !isMobile);   // phone: on-screen drag
+  document.getElementById('coachDesk').classList.toggle('hide', isMobile);   // laptop: keys + mouse
+  ov.classList.remove('hide');
+  state.uiBusy = true;                                   // freeze movement while it reads
+  if (document.exitPointerLock) document.exitPointerLock();
+  return true;
+}
+(function(){
+  var btn = document.getElementById('coachBtn');
+  if (!btn) return;
+  function ready(){
+    try { localStorage.setItem(COACH_KEY, '1'); } catch (e) {}
+    document.getElementById('ovCoach').classList.add('hide');
+    state.uiBusy = false;
+    lockPointer();                                       // gesture-driven -> re-locks on desktop
+  }
+  btn.addEventListener('click', ready);
+  btn.addEventListener('touchend', function(e){ e.preventDefault(); ready(); });
+})();
+
 // Show who we're signed in as, in-game.
 net.on('welcome', function(){ document.getElementById('whoami').textContent = net.name ? '◈ ' + net.name : ''; });
 
@@ -66,6 +92,7 @@ net.on('round', function(){
   ovDeath.classList.add('hide');
   ovWin.classList.add('hide');
   state.phase = 'playing';
+  if (showCoachIfFirstTime()) return;                    // first time: teach controls, coach locks after "Prêt"
   if (document.pointerLockElement !== canvas) lockPointer();
 });
 
