@@ -227,7 +227,9 @@
     #stamWrap{bottom:46px}
     #healthWrap{bottom:55px;height:7px}
     #healthLbl{bottom:66px;font-size:8px}
-    #livesLbl{bottom:78px;font-size:9px}
+    /* lives up top (row 4) — the bottom cluster is cramped against the browser toolbar */
+    #livesLbl{top:84px;left:10px;bottom:auto;transform:none;font-size:12px;letter-spacing:.14em;color:var(--dim)}
+    #livesLbl b{font-size:14px;letter-spacing:.08em}
     #mapCanvas{left:10px;bottom:10px}
     #spectateBanner{top:15%;font-size:15px;line-height:1.6;padding:22px 20px;max-width:92vw;width:auto}
     #spectateBanner b{font-size:20px;letter-spacing:.18em;margin-bottom:10px}
