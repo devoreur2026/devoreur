@@ -89,7 +89,7 @@ net.on('killed', function(m){
     rv.textContent = 'Pay ' + (m.price || 1000) + ' for 4 more lives';
     rv.classList.remove('hide');
   } else {
-    dl.textContent = lives + (lives === 1 ? ' life left' : ' lives left');
+    dl.textContent = '♥ ' + lives + (lives === 1 ? ' LIFE LEFT' : ' LIVES LEFT');
     rb.textContent = 'Rise again';
     rb.classList.remove('hide');
     rv.classList.add('hide');
