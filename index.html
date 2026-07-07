@@ -189,7 +189,7 @@
   #coinBtn{pointer-events:auto;background:transparent;border:1px solid rgba(255,206,107,.35);
     color:var(--gold);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:13px;line-height:1}
   #coinBtn:hover{border-color:var(--gold);background:rgba(255,206,107,.08)}
-  #fireBtn{position:fixed;right:20px;bottom:120px;z-index:12;pointer-events:auto;width:66px;height:66px;
+  #fireBtn{position:fixed;right:20px;bottom:120px;z-index:8;pointer-events:auto;width:66px;height:66px;
     border-radius:50%;border:1px solid rgba(255,120,40,.6);background:rgba(255,120,40,.14);color:#ffd9a0;
     font-size:26px;cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none}
   #fireBtn.hide{display:none}
@@ -253,7 +253,11 @@
   <div id="hunters"><div class="tag">Hunters in the maze</div><div id="botList"></div></div>
   <div id="hint">WASD move · mouse look · Shift sprint · click throw fireball · E beacon</div>
 </div>
-<div id="spectateBanner" class="hide"></div>
+<div id="spectateBanner" class="hide">
+  <b id="specTitle">◉ SPECTATING</b>
+  <div id="specMsg"></div>
+  <button class="specBtn" id="specWalletBtn">◈ Open Wallet</button>
+</div>
 <button id="fireBtn" class="hide">🔥</button>
 
 <div class="overlay" id="ovStart">

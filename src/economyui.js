@@ -35,21 +35,24 @@ net.on('state', function(){
 
   var b = el('spectateBanner');
   if (net.spectating){
-    if (specReason === 'insufficient')
-      b.innerHTML = '<b>◉ SPECTATING</b>Entry is ' + (e.price || 1000) + ' Credit — you have ' + ((net.wallet && net.wallet.credit) || 0) + '. Add funds and you jump straight into the maze.<button class="specBtn" id="specWalletBtn">◈ Open Wallet</button>';
-    else if (specReason === 'locked')
-      b.innerHTML = '<b>◉ SESSION ENDING</b>This session is wrapping up — a fresh one starts in a moment.';
-    else
-      b.innerHTML = '<b>◉ SPECTATING</b>Roam and watch — pay the entry and jump in whenever you\'re ready.<button class="specBtn" id="specWalletBtn">◈ Open Wallet</button>';
+    var msg = el('specMsg'), wbtn = el('specWalletBtn');
+    if (specReason === 'insufficient'){
+      el('specTitle').textContent = '◉ SPECTATING';
+      msg.textContent = 'Entry is ' + (e.price || 1000) + ' Credit — you have ' + ((net.wallet && net.wallet.credit) || 0) + '. Add funds and you jump straight into the maze.';
+      wbtn.classList.remove('hide');
+    } else if (specReason === 'locked'){
+      el('specTitle').textContent = '◉ SESSION ENDING';
+      msg.textContent = 'This session is wrapping up — a fresh one starts in a moment.';
+      wbtn.classList.add('hide');
+    } else {
+      el('specTitle').textContent = '◉ SPECTATING';
+      msg.textContent = 'Roam and watch — pay the entry and jump in whenever you\'re ready.';
+      wbtn.classList.remove('hide');
+    }
     b.classList.remove('hide');
   } else {
     b.classList.add('hide');
   }
-});
-// the Open-Wallet button lives inside the banner (rebuilt each tick) -> delegate
-el('spectateBanner').addEventListener('click', function(ev){
-  var t = ev.target;
-  if (t && (t.id === 'specWalletBtn' || (t.closest && t.closest('#specWalletBtn')))) openWallet(false);
 });
 
 /* ---- kill feed ---- */
@@ -120,6 +123,19 @@ el('coinBtn').addEventListener('click', function(){ el('ovWallet').classList.con
 el('walletBtn').addEventListener('click', function(){ openWallet(true); });   // from the home screen
 el('walletClose').addEventListener('click', closeWallet);
 
+// Fire on a normal click AND on a genuine mobile tap (touchend without a drag).
+// iOS Safari swallows the first click right after a momentum scroll, so buttons
+// inside scrollable overlays need this to be reliable.
+function onTap(id, fn){
+  var n = (typeof id === 'string') ? document.getElementById(id) : id;
+  if (!n) return;
+  n.addEventListener('click', fn);
+  var sx = 0, sy = 0, moved = false;
+  n.addEventListener('touchstart', function(ev){ var t = ev.touches[0]; sx = t.clientX; sy = t.clientY; moved = false; }, { passive: true });
+  n.addEventListener('touchmove', function(ev){ var t = ev.touches[0]; if (Math.abs(t.clientX - sx) > 10 || Math.abs(t.clientY - sy) > 10) moved = true; }, { passive: true });
+  n.addEventListener('touchend', function(ev){ if (!moved){ ev.preventDefault(); fn(ev); } });
+}
+
 /* ---- how-to-play overlay (home screen + in-game "?" button) ---- */
 function openHelp(){
   state.uiBusy = true;                          // pause game input while reading
@@ -127,8 +143,9 @@ function openHelp(){
   if (document.exitPointerLock) document.exitPointerLock();
 }
 function closeHelp(){ state.uiBusy = false; el('ovHelp').classList.add('hide'); }
-['helpBtn', 'helpLink', 'helpBtnGame'].forEach(function(id){ var n = document.getElementById(id); if (n) n.addEventListener('click', openHelp); });
-var helpCloseBtn = document.getElementById('helpClose'); if (helpCloseBtn) helpCloseBtn.addEventListener('click', closeHelp);
+onTap('helpBtn', openHelp); onTap('helpLink', openHelp); onTap('helpBtnGame', openHelp);
+onTap('helpClose', closeHelp);
+onTap('specWalletBtn', function(){ openWallet(false); });   // banner (in-game) -> wallet
 
 // Earnings -> Credit over HTTP (works from the home screen too, not just in-game,
 // where there'd be no socket). Idempotent per nonce; clear feedback on failure.
