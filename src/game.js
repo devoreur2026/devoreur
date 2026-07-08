@@ -20,6 +20,11 @@ var countdownEl = document.getElementById('countdown');
 function lockPointer(){
   try { var p = canvas.requestPointerLock(); if (p && p.catch) p.catch(function(){}); } catch (e) {}
 }
+// Format a monetary amount for display: French thousands spacing + CDF suffix.
+function money(n){
+  var v = Math.round(Number(n) || 0), sign = v < 0 ? '-' : '';
+  return sign + String(Math.abs(v)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' CDF';
+}
 function clearMarkers(){
   for (var i = 0; i < markers.length; i++) scene.remove(markers[i]);
   markers.length = 0;
@@ -113,7 +118,7 @@ net.on('killed', function(m){
     dl.textContent = "Vous n'avez plus de vies";
     rb.textContent = 'Observer';                 // roam as a ghost for the rest of the round
     rb.classList.remove('hide');
-    rv.textContent = 'Payer ' + (m.price || 1000) + ' pour 4 vies de plus';
+    rv.textContent = 'Payer ' + money(m.price || 1000) + ' pour 4 vies de plus';
     rv.classList.remove('hide');
   } else {
     dl.textContent = '♥ ' + lives + (lives === 1 ? ' VIE RESTANTE' : ' VIES RESTANTES');
@@ -161,14 +166,14 @@ net.on('roundOver', function(m){
   var box = document.getElementById('summaryBox');
   if (m.players){
     var head = rollover
-      ? 'Personne n\'a atteint le Cœur — la cagnotte monte à ' + m.rolled + ' CDF pour la prochaine session.'
-      : 'Cagnotte ' + (m.pot || 0) + (m.topup ? ' + ' + m.topup + ' bonus' : '') +
-        ' → ' + (m.winnerName || '—') + ' remporte ' + (m.target || 0) + ' CDF';
+      ? 'Personne n\'a atteint le Cœur — la cagnotte monte à ' + money(m.rolled) + ' pour la prochaine session.'
+      : 'Cagnotte ' + money(m.pot || 0) + (m.topup ? ' + ' + money(m.topup) + ' bonus' : '') +
+        ' → ' + (m.winnerName || '—') + ' remporte ' + money(m.target || 0);
     var rows = m.players.slice().sort(function(a, b){ return b.net - a.net; }).map(function(p){
       var me = p.id === net.id;
-      var entry = p.entry ? ' <span style="color:#5c5675">· entrée ' + p.entry + '</span>' : '';
+      var entry = p.entry ? ' <span style="color:#5c5675">· entrée ' + money(p.entry) + '</span>' : '';
       return '<div class="' + (me ? 'me' : '') + '">' + (me ? '▸ ' : '') + p.name + entry + ' &nbsp; ' +
-             (p.net >= 0 ? '+' : '') + p.net + '</div>';
+             (p.net >= 0 ? '+' : '') + money(p.net) + '</div>';
     }).join('');
     box.innerHTML = '<div style="color:var(--lime);margin-bottom:8px">' + head + '</div>' + rows;
   } else box.innerHTML = '';

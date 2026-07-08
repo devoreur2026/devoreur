@@ -44,7 +44,7 @@ function reasonText(d){
   if (!d) return 'Une erreur est survenue — réessayez.';
   var base = REASONS[d.reason] || 'Impossible de traiter la demande.';
   if (d.reason === 'below_min' && d.min) base = 'Le minimum est ' + d.min + ' CDF.';
-  if (d.reason === 'daily_cap' && d.cap) base = 'Limite quotidienne : ' + d.cap + ' CDF (déjà ' + (d.already || 0) + ').';
+  if (d.reason === 'daily_cap' && d.cap) base = 'Limite quotidienne : ' + d.cap + ' CDF (déjà ' + (d.already || 0) + ' CDF).';
   if (d.reason === 'bad_phone' && d.detail) base = d.detail;
   return base;
 }

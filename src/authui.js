@@ -41,8 +41,8 @@ function pollRound(){
   fetch('/api/round', { cache: 'no-store' }).then(function(r){ return r.json(); }).then(function(info){
     if (!info) return;
     el('joinInfo').innerHTML = info.open
-      ? 'Entrée <b>' + info.price + '</b> CDF · 4 vies · Cagnotte <b>' + info.pot + '</b> · ' + fmtClock(info.elapsed) + ' / ' + fmtClock(info.limit || 3600)
-      : 'Session en fin (' + fmtClock(info.elapsed) + ') · Cagnotte <b>' + info.pot + '</b> — vous rejoignez la prochaine';
+      ? 'Entrée <b>' + info.price + '</b> CDF · 4 vies · Cagnotte <b>' + info.pot + '</b> CDF · ' + fmtClock(info.elapsed) + ' / ' + fmtClock(info.limit || 3600)
+      : 'Session en fin (' + fmtClock(info.elapsed) + ') · Cagnotte <b>' + info.pot + '</b> CDF — vous rejoignez la prochaine';
   }).catch(function(){});
 }
 function startPoll(){ if (!roundPoll){ pollRound(); roundPoll = setInterval(pollRound, 2500); } }

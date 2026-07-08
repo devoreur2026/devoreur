@@ -43,7 +43,7 @@ export var net = {
   players: [],
   eaters: [],
   round: { phase: 'playing', timeLeft: 0, winner: null },
-  econ: { pot: 0, paid: 0, bonus: false, bonusPot: 10000 },
+  econ: { pot: 0, paid: 0, bonus: false, bonusPot: 500000 },
   wallet: { credit: 0, earnings: 0, fireballs: 0 },
   spectating: false,
   rev: 0,                     // bumped on every STATE so the client reconciles once per snapshot

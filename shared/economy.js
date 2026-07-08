@@ -28,7 +28,7 @@ export var ENTRY_CLOSE = 3600;      // entries stay open for the whole session
 export var KILL_PENALTY = 250;      // victim loses up to this from Credit (never negative)
 export var FIREBALL_KILLER_SHARE = 0.70;  // of the taken amount -> killer EARNINGS, rest -> pot
 export var EATER_HOUSE_SHARE = 0.50;      // of the taken amount -> house, rest -> pot
-export var BONUS_POT = 80000;       // guaranteed prize floor every round: winner gets
+export var BONUS_POT = 500000;      // guaranteed prize floor every round: winner gets
                                     // max(pot, BONUS_POT); house tops up the gap. Always on.
 
 // shop / fireballs

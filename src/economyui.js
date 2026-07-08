@@ -10,10 +10,16 @@ import { throwFireball } from './player.js';
 
 function el(id){ return document.getElementById(id); }
 
+// Format a monetary amount for display: French thousands spacing + CDF suffix.
+function money(n){
+  var v = Math.round(Number(n) || 0), sign = v < 0 ? '-' : '';
+  return sign + String(Math.abs(v)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' CDF';
+}
+
 /* ---- wallet bar + pot bar (from snapshots) ---- */
 net.on('wallet', function(w){
-  el('wCredit').textContent = w.credit;
-  el('wEarn').textContent = w.earnings;
+  el('wCredit').textContent = money(w.credit);
+  el('wEarn').textContent = money(w.earnings);
   el('wFb').textContent = w.fireballs;
   if (!el('ovWallet').classList.contains('hide')) refreshPanel();
 });
@@ -24,11 +30,11 @@ net.on('spectate', function(m){ specReason = (m && m.reason) || 'midround'; });
 
 net.on('state', function(){
   var e = net.econ || {};
-  el('potVal').textContent = e.pot || 0;
-  el('entryVal').textContent = e.open ? ('ENTRÉE ' + (e.price || 0)) : 'ENTRÉES FERMÉES';
+  el('potVal').textContent = money(e.pot || 0);
+  el('entryVal').textContent = e.open ? ('ENTRÉE ' + money(e.price || 0)) : 'ENTRÉES FERMÉES';
   el('entryVal').className = e.open ? '' : 'locked';
   var bv = el('bonusVal');
-  bv.textContent = 'BONUS ' + (e.bonusPot || 80000);   // guaranteed prize floor, always on
+  bv.textContent = 'BONUS ' + money(e.bonusPot || 500000);   // guaranteed prize floor, always on
   bv.className = 'unlocked';
   var tEl = document.getElementById('timer');
   if (tEl) tEl.style.color = e.open ? '' : '#e8574a';   // round timer reddens once entries close
@@ -38,7 +44,7 @@ net.on('state', function(){
     var msg = el('specMsg'), wbtn = el('specWalletBtn');
     if (specReason === 'insufficient'){
       el('specTitle').textContent = '◉ SPECTATEUR';
-      msg.textContent = 'L\'entrée coûte ' + (e.price || 1000) + ' Crédit — vous avez ' + ((net.wallet && net.wallet.credit) || 0) + '. Ajoutez des fonds et vous entrez aussitôt dans le labyrinthe.';
+      msg.textContent = 'L\'entrée coûte ' + money(e.price || 1000) + ' — vous avez ' + money((net.wallet && net.wallet.credit) || 0) + '. Ajoutez des fonds et vous entrez aussitôt dans le labyrinthe.';
       wbtn.classList.remove('hide');
     } else if (specReason === 'locked'){
       el('specTitle').textContent = '◉ SESSION EN FIN';
@@ -67,11 +73,11 @@ net.on('killfeed', function(text){
 var walletMode = 'game';   // 'game' | 'standalone'
 
 function setBalances(credit, earnings, fireballs){
-  el('pwCredit').textContent = credit;
-  el('pwEarn').textContent = earnings;
+  el('pwCredit').textContent = money(credit);
+  el('pwEarn').textContent = money(earnings);
   el('pwFb').textContent = fireballs;
-  el('wCredit').textContent = credit;         // keep the in-game top bar consistent
-  el('wEarn').textContent = earnings;
+  el('wCredit').textContent = money(credit);  // keep the in-game top bar consistent
+  el('wEarn').textContent = money(earnings);
   el('wFb').textContent = fireballs;
 }
 function refreshPanel(){ setBalances(net.wallet.credit, net.wallet.earnings, net.wallet.fireballs); }
@@ -95,7 +101,7 @@ function renderWalletHistory(rows){
     var row = document.createElement('div'); row.className = 'row';
     var lab = document.createElement('span'); lab.textContent = TXLABEL[r.type] || r.type.replace(/_/g, ' ');
     var amt = document.createElement('span'); amt.className = r.amount >= 0 ? 'pos' : 'neg';
-    amt.textContent = (r.amount >= 0 ? '+' : '') + r.amount + ' ' + (BUCKET[r.bucket] || r.bucket);
+    amt.textContent = (r.amount >= 0 ? '+' : '') + money(r.amount) + ' · ' + (BUCKET[r.bucket] || r.bucket);
     row.appendChild(lab); row.appendChild(amt); h.appendChild(row);
   });
   if (!(rows && rows.length)) h.innerHTML = '<div class="row"><span>aucune transaction pour l\'instant</span><span></span></div>';
@@ -170,7 +176,7 @@ el('xferBtn').addEventListener('click', function(){
   var btn = this; btn.disabled = true;
   walletHttp('/api/wallet/transfer', 'POST', { amount: a, nonce: net.nonce() }).then(function(d){
     btn.disabled = false;
-    if (d && d.ok){ applyWallet(d); el('xferAmt').value = ''; walletMsg('Transféré ' + a + ' vers le Crédit.'); }
+    if (d && d.ok){ applyWallet(d); el('xferAmt').value = ''; walletMsg('Transféré ' + money(a) + ' vers le Crédit.'); }
     else walletMsg(d && d.reason === 'insufficient' ? 'Pas assez de Gains pour ce transfert.' : 'Transfert impossible — réessayez.', true);
   });
 });
